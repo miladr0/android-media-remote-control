@@ -88,7 +88,7 @@ class MediaSessionCoordinator(
                 val cb = object : MediaController.Callback() {
                     override fun onPlaybackStateChanged(state: PlaybackState?) = refreshState()
                     override fun onMetadataChanged(metadata: MediaMetadata?) = refreshState()
-                    override fun onAudioInfoChanged(info: MediaController.PlaybackInfo?) = refreshState()
+                    override fun onAudioInfoChanged(info: MediaController.PlaybackInfo) = refreshState()
                     override fun onSessionDestroyed() {
                         registeredCallbacks.remove(key)
                         refreshState()
