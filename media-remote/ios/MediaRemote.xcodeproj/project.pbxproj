@@ -1,0 +1,346 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000010000000000000001 /* MediaRemoteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000010000000000000001 /* MediaRemoteApp.swift */; };
+		A10000020000000000000001 /* ProtocolModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000020000000000000001 /* ProtocolModels.swift */; };
+		A10000030000000000000001 /* CryptoSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000030000000000000001 /* CryptoSession.swift */; };
+		A10000040000000000000001 /* PairingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000040000000000000001 /* PairingStore.swift */; };
+		A10000050000000000000001 /* BonjourBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000050000000000000001 /* BonjourBrowser.swift */; };
+		A10000060000000000000001 /* RemoteWebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000060000000000000001 /* RemoteWebSocketClient.swift */; };
+		A10000070000000000000001 /* RemoteViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000070000000000000001 /* RemoteViewModel.swift */; };
+		A10000080000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000080000000000000001 /* ContentView.swift */; };
+		A10000090000000000000001 /* DeviceListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000090000000000000001 /* DeviceListView.swift */; };
+		A10000100000000000000001 /* PairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000100000000000000001 /* PairingView.swift */; };
+		A10000110000000000000001 /* QrScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000110000000000000001 /* QrScannerView.swift */; };
+		A10000120000000000000001 /* ArtworkImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000120000000000000001 /* ArtworkImageView.swift */; };
+		A20000010000000000000001 /* ProtocolDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000010000000000000001 /* ProtocolDecodingTests.swift */; };
+		A20000020000000000000001 /* ReplayGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000020000000000000001 /* ReplayGuardTests.swift */; };
+		A20000030000000000000001 /* ReconnectPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000030000000000000001 /* ReconnectPolicyTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C10000010000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D10000010000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E10000010000000000000001;
+			remoteInfo = MediaRemote;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* MediaRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MediaRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000010000000000000001 /* MediaRemoteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaRemoteApp.swift; sourceTree = "<group>"; };
+		B10000020000000000000001 /* ProtocolModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolModels.swift; sourceTree = "<group>"; };
+		B10000030000000000000001 /* CryptoSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoSession.swift; sourceTree = "<group>"; };
+		B10000040000000000000001 /* PairingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStore.swift; sourceTree = "<group>"; };
+		B10000050000000000000001 /* BonjourBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonjourBrowser.swift; sourceTree = "<group>"; };
+		B10000060000000000000001 /* RemoteWebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteWebSocketClient.swift; sourceTree = "<group>"; };
+		B10000070000000000000001 /* RemoteViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteViewModel.swift; sourceTree = "<group>"; };
+		B10000080000000000000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B10000090000000000000001 /* DeviceListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceListView.swift; sourceTree = "<group>"; };
+		B10000100000000000000001 /* PairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingView.swift; sourceTree = "<group>"; };
+		B10000110000000000000001 /* QrScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QrScannerView.swift; sourceTree = "<group>"; };
+		B10000120000000000000001 /* ArtworkImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkImageView.swift; sourceTree = "<group>"; };
+		B10000130000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B20000000000000000000001 /* MediaRemoteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MediaRemoteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20000010000000000000001 /* ProtocolDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtocolDecodingTests.swift; sourceTree = "<group>"; };
+		B20000020000000000000001 /* ReplayGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplayGuardTests.swift; sourceTree = "<group>"; };
+		B20000030000000000000001 /* ReconnectPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconnectPolicyTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		F10000010000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				F10000020000000000000001 /* MediaRemote */,
+				F10000080000000000000001 /* MediaRemoteTests */,
+				F10000090000000000000001 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F10000020000000000000001 /* MediaRemote */ = {
+			isa = PBXGroup;
+			children = (
+				B10000010000000000000001 /* MediaRemoteApp.swift */,
+				B10000130000000000000001 /* Info.plist */,
+				F10000030000000000000001 /* Protocol */,
+				F10000040000000000000001 /* Security */,
+				F10000050000000000000001 /* Network */,
+				F10000060000000000000001 /* ViewModels */,
+				F10000070000000000000001 /* Views */,
+			);
+			path = MediaRemote;
+			sourceTree = "<group>";
+		};
+		F10000030000000000000001 /* Protocol */ = {
+			isa = PBXGroup;
+			children = (
+				B10000020000000000000001 /* ProtocolModels.swift */,
+			);
+			path = Protocol;
+			sourceTree = "<group>";
+		};
+		F10000040000000000000001 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				B10000030000000000000001 /* CryptoSession.swift */,
+				B10000040000000000000001 /* PairingStore.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		F10000050000000000000001 /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				B10000050000000000000001 /* BonjourBrowser.swift */,
+				B10000060000000000000001 /* RemoteWebSocketClient.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		F10000060000000000000001 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				B10000070000000000000001 /* RemoteViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		F10000070000000000000001 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B10000080000000000000001 /* ContentView.swift */,
+				B10000090000000000000001 /* DeviceListView.swift */,
+				B10000100000000000000001 /* PairingView.swift */,
+				B10000110000000000000001 /* QrScannerView.swift */,
+				B10000120000000000000001 /* ArtworkImageView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		F10000080000000000000001 /* MediaRemoteTests */ = {
+			isa = PBXGroup;
+			children = (
+				B20000010000000000000001 /* ProtocolDecodingTests.swift */,
+				B20000020000000000000001 /* ReplayGuardTests.swift */,
+				B20000030000000000000001 /* ReconnectPolicyTests.swift */,
+			);
+			path = MediaRemoteTests;
+			sourceTree = "<group>";
+		};
+		F10000090000000000000001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* MediaRemote.app */,
+				B20000000000000000000001 /* MediaRemoteTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10000010000000000000001 /* MediaRemote */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G10000020000000000000001 /* Build configuration list for PBXNativeTarget "MediaRemote" */;
+			buildPhases = (
+				H10000010000000000000001 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MediaRemote;
+			productName = MediaRemote;
+			productReference = B10000000000000000000001 /* MediaRemote.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E10000020000000000000001 /* MediaRemoteTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G10000030000000000000001 /* Build configuration list for PBXNativeTarget "MediaRemoteTests" */;
+			buildPhases = (
+				H10000020000000000000001 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				J10000010000000000000001 /* PBXTargetDependency */,
+			);
+			name = MediaRemoteTests;
+			productName = MediaRemoteTests;
+			productReference = B20000000000000000000001 /* MediaRemoteTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D10000010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+			};
+			buildConfigurationList = G10000010000000000000001 /* Build configuration list for PBXProject "MediaRemote" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = F10000010000000000000001;
+			productRefGroup = F10000090000000000000001 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E10000010000000000000001 /* MediaRemote */,
+				E10000020000000000000001 /* MediaRemoteTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		H10000010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000010000000000000001 /* MediaRemoteApp.swift in Sources */,
+				A10000020000000000000001 /* ProtocolModels.swift in Sources */,
+				A10000030000000000000001 /* CryptoSession.swift in Sources */,
+				A10000040000000000000001 /* PairingStore.swift in Sources */,
+				A10000050000000000000001 /* BonjourBrowser.swift in Sources */,
+				A10000060000000000000001 /* RemoteWebSocketClient.swift in Sources */,
+				A10000070000000000000001 /* RemoteViewModel.swift in Sources */,
+				A10000080000000000000001 /* ContentView.swift in Sources */,
+				A10000090000000000000001 /* DeviceListView.swift in Sources */,
+				A10000100000000000000001 /* PairingView.swift in Sources */,
+				A10000110000000000000001 /* QrScannerView.swift in Sources */,
+				A10000120000000000000001 /* ArtworkImageView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		H10000020000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A20000010000000000000001 /* ProtocolDecodingTests.swift in Sources */,
+				A20000020000000000000001 /* ReplayGuardTests.swift in Sources */,
+				A20000030000000000000001 /* ReconnectPolicyTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		J10000010000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E10000010000000000000001 /* MediaRemote */;
+			targetProxy = C10000010000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		K10000010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		K10000020000000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		K10000030000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MediaRemote/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mediaremote.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1";
+			};
+			name = Debug;
+		};
+		K10000040000000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MediaRemote/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mediaremote.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1";
+			};
+			name = Release;
+		};
+		K10000050000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mediaremote.iosTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MediaRemote.app/$(BUNDLE_EXECUTABLE_NAME)";
+			};
+			name = Debug;
+		};
+		K10000060000000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mediaremote.iosTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MediaRemote.app/$(BUNDLE_EXECUTABLE_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		G10000010000000000000001 /* Build configuration list for PBXProject "MediaRemote" */ = {
+			isa = PBXConfigurationList;
+			buildConfigurations = (
+				K10000010000000000000001 /* Debug */,
+				K10000020000000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G10000020000000000000001 /* Build configuration list for PBXNativeTarget "MediaRemote" */ = {
+			isa = PBXConfigurationList;
+			buildConfigurations = (
+				K10000030000000000000001 /* Debug */,
+				K10000040000000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G10000030000000000000001 /* Build configuration list for PBXNativeTarget "MediaRemoteTests" */ = {
+			isa = PBXConfigurationList;
+			buildConfigurations = (
+				K10000050000000000000001 /* Debug */,
+				K10000060000000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D10000010000000000000001 /* Project object */;
+}

@@ -1,0 +1,3 @@
+-keep class com.mediaremote.receiver.protocol.** { *; }
+-keepattributes *Annotation*, InnerClasses
+-dontwarn io.ktor.**

@@ -1,0 +1,6 @@
+{
+  "name": "LocalCast Remote — Cross-Platform Android Media Remote",
+  "description": "Local-network SwiftUI iOS controller and Kotlin Jetpack Compose Android receiver system for Xiaomi media control over WebSocket and mDNS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

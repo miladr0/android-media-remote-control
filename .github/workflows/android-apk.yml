@@ -1,0 +1,42 @@
+name: Build Android APK
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: media-remote/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Build debug APK
+        run: gradle --no-daemon --stacktrace assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: localcast-receiver-debug-apk
+          path: media-remote/android/app/build/outputs/apk/debug/*.apk
+      - name: Publish APK as a GitHub pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: LocalCast Receiver build ${{ github.run_number }}
+          prerelease: true
+          files: media-remote/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Unit tests
+        run: gradle --no-daemon testDebugUnitTest
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-reports
+          path: media-remote/android/app/build/reports/tests/

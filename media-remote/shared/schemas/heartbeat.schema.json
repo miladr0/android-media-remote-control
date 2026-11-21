@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mediaremote.local/schemas/heartbeat.schema.json",
+  "title": "MediaRemoteHeartbeat",
+  "description": "Ping, pong, sync_request, and AES-GCM encrypted wrapper payloads.",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["sentAt"],
+      "additionalProperties": false,
+      "properties": {
+        "sentAt": { "type": "integer", "minimum": 1700000000000 }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["echoSentAt", "serverTime"],
+      "additionalProperties": false,
+      "properties": {
+        "echoSentAt": { "type": "integer", "minimum": 1700000000000 },
+        "serverTime": { "type": "integer", "minimum": 1700000000000 }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["reason"],
+      "additionalProperties": false,
+      "properties": {
+        "reason": { "type": "string", "enum": ["initial", "reconnect", "manual"] }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["iv", "ciphertext", "tag"],
+      "additionalProperties": false,
+      "properties": {
+        "iv": { "type": "string", "minLength": 16, "maxLength": 32 },
+        "ciphertext": { "type": "string", "minLength": 4 },
+        "tag": { "type": "string", "minLength": 16, "maxLength": 48 }
+      }
+    }
+  ]
+}

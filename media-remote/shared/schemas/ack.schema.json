@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mediaremote.local/schemas/ack.schema.json",
+  "title": "MediaRemoteAck",
+  "description": "Explicit command acceptance receipt distinct from MediaController state confirmation.",
+  "type": "object",
+  "required": ["requestId", "action", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "requestId": { "type": "string", "minLength": 8, "maxLength": 64 },
+    "action": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["accepted", "rejected"]
+    },
+    "reason": { "type": ["string", "null"] }
+  }
+}

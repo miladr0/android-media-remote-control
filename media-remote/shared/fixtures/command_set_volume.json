@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "type": "command",
+  "id": "req-cmd00006",
+  "seq": 8,
+  "ts": 1763712000800,
+  "nonce": "CQoLDA0ODxAREhMU",
+  "data": {
+    "action": "set_volume",
+    "volume": 65
+  }
+}

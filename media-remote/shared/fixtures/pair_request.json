@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "type": "pair_request",
+  "id": "req-pair0001",
+  "seq": 1,
+  "ts": 1763712000100,
+  "nonce": "AgMEBQYHCAkKCwwN",
+  "data": {
+    "clientId": "web-ab12cd34",
+    "clientName": "iPhone Safari",
+    "pairingToken": "tok_0123456789abcdef"
+  }
+}

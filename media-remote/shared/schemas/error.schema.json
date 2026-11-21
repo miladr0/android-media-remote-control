@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mediaremote.local/schemas/error.schema.json",
+  "title": "MediaRemoteError",
+  "description": "Structured protocol and media-capability error message.",
+  "type": "object",
+  "required": ["code", "message", "recoverable"],
+  "additionalProperties": false,
+  "properties": {
+    "requestId": { "type": ["string", "null"] },
+    "code": {
+      "type": "string",
+      "enum": [
+        "UNSUPPORTED_VERSION",
+        "UNAUTHENTICATED",
+        "PAIRING_EXPIRED",
+        "INVALID_TOKEN",
+        "DEVICE_REVOKED",
+        "REPLAY_DETECTED",
+        "INVALID_SCHEMA",
+        "UNSUPPORTED_ACTION",
+        "NO_ACTIVE_SESSION",
+        "SESSION_NOT_FOUND",
+        "VOLUME_FIXED",
+        "PERMISSION_MISSING",
+        "RATE_LIMITED"
+      ]
+    },
+    "message": { "type": "string", "minLength": 1 },
+    "recoverable": { "type": "boolean" }
+  }
+}

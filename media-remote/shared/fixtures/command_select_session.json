@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "type": "command",
+  "id": "req-cmd00007",
+  "seq": 9,
+  "ts": 1763712000900,
+  "nonce": "CgsMDQ4PEBESExQV",
+  "data": {
+    "action": "select_session",
+    "targetSessionId": "com.spotify.music:1042"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "protocolName": "MediaRemote",
+  "version": 1,
+  "serviceType": "_mediaremote._tcp.",
+  "defaultPort": 8765,
+  "webRemotePath": "/",
+  "websocketPath": "/mediaremote",
+  "pairingUrlTemplate": "http://<ip>:<port>/?pair=<oneTimeToken>",
+  "heartbeatIntervalMs": 10000,
+  "heartbeatTimeoutMs": 25000,
+  "pairingTokenTtlMs": 120000,
+  "replayWindowMs": 30000,
+  "crypto": {
+    "transport": "plain-http-lan",
+    "pairingSwap": "one-time-token-to-256bit-secret",
+    "authMac": "HMAC-SHA256"
+  },
+  "actions": ["play", "pause", "stop", "next", "previous", "set_volume", "select_session"],
+  "playbackStates": ["NONE", "STOPPED", "PAUSED", "PLAYING", "BUFFERING", "ERROR"],
+  "errorCodes": [
+    "UNSUPPORTED_VERSION",
+    "UNAUTHENTICATED",
+    "PAIRING_EXPIRED",
+    "INVALID_TOKEN",
+    "DEVICE_REVOKED",
+    "REPLAY_DETECTED",
+    "INVALID_SCHEMA",
+    "UNSUPPORTED_ACTION",
+    "NO_ACTIVE_SESSION",
+    "SESSION_NOT_FOUND",
+    "VOLUME_FIXED",
+    "PERMISSION_MISSING",
+    "RATE_LIMITED"
+  ]
+}

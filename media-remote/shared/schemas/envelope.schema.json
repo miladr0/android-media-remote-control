@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mediaremote.local/schemas/envelope.schema.json",
+  "title": "MediaRemoteEnvelope",
+  "description": "Top-level versioned WebSocket frame envelope for MediaRemote v1.",
+  "type": "object",
+  "required": ["v", "type", "id", "seq", "ts", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "v": {
+      "type": "integer",
+      "const": 1,
+      "description": "Protocol version."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "hello",
+        "hello_ack",
+        "pair_request",
+        "pair_ack",
+        "auth_challenge",
+        "auth_response",
+        "auth_ok",
+        "command",
+        "ack",
+        "state",
+        "sync_request",
+        "ping",
+        "pong",
+        "error",
+        "encrypted"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 64
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 1700000000000
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 12,
+      "maxLength": 64
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

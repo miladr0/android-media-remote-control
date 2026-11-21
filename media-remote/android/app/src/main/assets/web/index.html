@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1120" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LocalCast" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <title>LocalCast Remote</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #111827;
+      --surface-alt: #1e293b;
+      --border: rgba(255, 255, 255, 0.09);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #2563eb;
+      --accent-hover: #3b82f6;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --err: #ef4444;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      padding: calc(14px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom));
+    }
+    .app {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 36px;
+    }
+    .conn-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      min-width: 0;
+    }
+    .conn-status span.label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+    .dot.connected { background: var(--ok); }
+    .dot.busy { background: var(--warn); }
+    .dot.error { background: var(--err); }
+    .icon-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      min-height: 40px;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      touch-action: manipulation;
+      flex-shrink: 0;
+    }
+    .icon-btn:active { opacity: 0.75; }
+    .artwork-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 4px 0;
+    }
+    .artwork-box {
+      width: min(68vw, 248px);
+      height: min(68vw, 248px);
+      border-radius: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .artwork-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .artwork-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      padding: 16px;
+    }
+    .meta {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0 8px;
+    }
+    .app-meta {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+    .track-title {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .track-artist {
+      font-size: 14px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sessions {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      justify-content: center;
+      padding: 2px 4px;
+    }
+    .session-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-height: 36px;
+      touch-action: manipulation;
+    }
+    .session-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+    .ctrl-btn {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: opacity 0.15s ease, transform 0.1s ease;
+    }
+    .ctrl-btn:active:not(:disabled) { transform: scale(0.95); }
+    .ctrl-btn.primary {
+      width: 76px;
+      height: 76px;
+      border-radius: 999px;
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+    .ctrl-btn:disabled {
+      opacity: 0.28;
+      cursor: not-allowed;
+    }
+    .volume-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .volume-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 32px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      margin: 0;
+    }
+    .feedback {
+      min-height: 38px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .feedback.ok { color: #86efac; border-color: rgba(34, 197, 94, 0.35); }
+    .feedback.err { color: #fca5a5; border-color: rgba(239, 68, 68, 0.35); }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .panel input {
+      width: 100%;
+      min-height: 42px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 0 12px;
+      font-size: 13px;
+    }
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-primary {
+      flex: 1;
+      min-height: 42px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-danger {
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      background: transparent;
+      color: #fca5a5;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="conn-status">
+        <span id="statusDot" class="dot"></span>
+        <span id="statusText" class="label">Disconnected</span>
+      </div>
+      <button id="toggleSetupBtn" class="icon-btn" type="button">Pairing</button>
+    </header>
+
+    <section id="pairingPanel" class="panel hidden">
+      <div style="font-weight: 600;">Device Pairing &amp; Local Secret</div>
+      <div id="pairingSummary" style="font-size: 12px; color: var(--muted);">
+        Scan the QR code in LocalCast Receiver on your Android phone, or paste the one-time token below.
+      </div>
+      <input id="manualTokenInput" type="text" placeholder="One-time pairing token" autocomplete="off" />
+      <div class="panel-actions">
+        <button id="pairSubmitBtn" class="btn-primary" type="button">Pair Device</button>
+        <button id="forgetBtn" class="btn-danger" type="button">Forget Secret</button>
+      </div>
+    </section>
+
+    <div class="artwork-wrap">
+      <div class="artwork-box">
+        <img id="artworkImg" class="hidden" alt="Album artwork" />
+        <div id="artworkFallback" class="artwork-placeholder">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </svg>
+          <span id="fallbackLabel">No Artwork</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="meta">
+      <div id="appMeta" class="app-meta">No Active Player</div>
+      <div id="trackTitle" class="track-title">Ready on Local Wi-Fi</div>
+      <div id="trackArtist" class="track-artist">Scan Android QR code to pair</div>
+    </section>
+
+    <section id="sessionsBar" class="sessions hidden"></section>
+
+    <section class="controls" aria-label="Playback controls">
+      <button id="btnPrev" class="ctrl-btn" type="button" aria-label="Previous" disabled>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
+        </svg>
+      </button>
+
+      <button id="btnPlayPause" class="ctrl-btn primary" type="button" aria-label="Play or Pause" disabled>
+        <svg id="iconPlay" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+        <svg id="iconPause" class="hidden" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+        </svg>
+      </button>
+
+      <button id="btnNext" class="ctrl-btn" type="button" aria-label="Next" disabled>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+        </svg>
+      </button>
+
+      <button id="btnStop" class="ctrl-btn" type="button" aria-label="Stop" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 6h12v12H6z" />
+        </svg>
+      </button>
+    </section>
+
+    <section class="volume-card">
+      <div class="volume-head">
+        <span>Media Volume</span>
+        <span id="volumeLabel" style="font-variant-numeric: tabular-nums;">--%</span>
+      </div>
+      <input id="volumeSlider" type="range" min="0" max="100" value="50" disabled />
+    </section>
+
+    <footer id="feedbackBar" class="feedback">
+      <span id="feedbackText">Waiting for connection</span>
+    </footer>
+  </main>
+
+  <script id="localcast-protocol-core">
+    (function (root) {
+      "use strict";
+
+      var PROTOCOL_VERSION = 1;
+
+      var K256 = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+      ];
+
+      function rotr(x, n) {
+        return (x >>> n) | (x << (32 - n));
+      }
+
+      function utf8ToBytes(str) {
+        if (root.TextEncoder) return new root.TextEncoder().encode(str);
+        var enc = unescape(encodeURIComponent(str));
+        var arr = new Uint8Array(enc.length);
+        for (var i = 0; i < enc.length; i++) arr[i] = enc.charCodeAt(i);
+        return arr;
+      }
+
+      function sha256Bytes(msgBytes) {
+        var h0 = 0x6a09e667, h1 = 0xbb67ae85, h2 = 0x3c6ef372, h3 = 0xa54ff53a;
+        var h4 = 0x510e527f, h5 = 0x9b05688c, h6 = 0x1f83d9ab, h7 = 0x5be0cd19;
+        var len = msgBytes.length;
+        var bitLenHi = Math.floor((len * 8) / 4294967296);
+        var bitLenLo = (len * 8) >>> 0;
+        var paddedLen = Math.ceil((len + 9) / 64) * 64;
+        var buf = new Uint8Array(paddedLen);
+        buf.set(msgBytes, 0);
+        buf[len] = 0x80;
+        var view = new DataView(buf.buffer);
+        view.setUint32(paddedLen - 8, bitLenHi, false);
+        view.setUint32(paddedLen - 4, bitLenLo, false);
+
+        var w = new Int32Array(64);
+        for (var off = 0; off < paddedLen; off += 64) {
+          for (var i = 0; i < 16; i++) w[i] = view.getInt32(off + i * 4, false);
+          for (var j = 16; j < 64; j++) {
+            var s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >>> 3);
+            var s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >>> 10);
+            w[j] = (w[j - 16] + s0 + w[j - 7] + s1) | 0;
+          }
+          var a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7;
+          for (var k = 0; k < 64; k++) {
+            var S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+            var ch = (e & f) ^ ((~e) & g);
+            var temp1 = (h + S1 + ch + K256[k] + w[k]) | 0;
+            var S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+            var maj = (a & b) ^ (a & c) ^ (b & c);
+            var temp2 = (S0 + maj) | 0;
+            h = g; g = f; f = e; e = (d + temp1) | 0;
+            d = c; c = b; b = a; a = (temp1 + temp2) | 0;
+          }
+          h0 = (h0 + a) | 0; h1 = (h1 + b) | 0; h2 = (h2 + c) | 0; h3 = (h3 + d) | 0;
+          h4 = (h4 + e) | 0; h5 = (h5 + f) | 0; h6 = (h6 + g) | 0; h7 = (h7 + h) | 0;
+        }
+        var out = new Uint8Array(32);
+        var ov = new DataView(out.buffer);
+        ov.setInt32(0, h0, false); ov.setInt32(4, h1, false); ov.setInt32(8, h2, false); ov.setInt32(12, h3, false);
+        ov.setInt32(16, h4, false); ov.setInt32(20, h5, false); ov.setInt32(24, h6, false); ov.setInt32(28, h7, false);
+        return out;
+      }
+
+      function base64ToBytes(b64) {
+        var bin = root.atob(b64);
+        var arr = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return arr;
+      }
+
+      function bytesToBase64(bytes) {
+        var bin = "";
+        for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        return root.btoa(bin);
+      }
+
+      function bytesToHex(bytes) {
+        var hex = "";
+        for (var i = 0; i < bytes.length; i++) {
+          var h = bytes[i].toString(16);
+          hex += h.length === 1 ? "0" + h : h;
+        }
+        return hex;
+      }
+
+      function hmacSha256Bytes(secretB64, message) {
+        var key = base64ToBytes(secretB64);
+        if (key.length > 64) key = sha256Bytes(key);
+        var kPad = new Uint8Array(64);
+        kPad.set(key, 0);
+        var oPad = new Uint8Array(64);
+        var iPad = new Uint8Array(64);
+        for (var i = 0; i < 64; i++) {
+          oPad[i] = kPad[i] ^ 0x5c;
+          iPad[i] = kPad[i] ^ 0x36;
+        }
+        var msg = utf8ToBytes(message);
+        var inner = new Uint8Array(64 + msg.length);
+        inner.set(iPad, 0); inner.set(msg, 64);
+        var innerHash = sha256Bytes(inner);
+        var outer = new Uint8Array(64 + 32);
+        outer.set(oPad, 0); outer.set(innerHash, 64);
+        return sha256Bytes(outer);
+      }
+
+      function hmacSha256Base64(secretB64, message) {
+        return bytesToBase64(hmacSha256Bytes(secretB64, message));
+      }
+
+      function hmacSha256Hex(secretB64, message) {
+        return bytesToHex(hmacSha256Bytes(secretB64, message));
+      }
+
+      function randomBase64(byteCount) {
+        var arr = new Uint8Array(byteCount);
+        root.crypto.getRandomValues(arr);
+        return bytesToBase64(arr);
+      }
+
+      function makeId(prefix) {
+        var token = randomBase64(12).replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toLowerCase();
+        while (token.length < 8) token += "0";
+        return prefix + "-" + token;
+      }
+
+      function buildHelloPayload(clientId, clientName) {
+        return {
+          clientId: clientId,
+          clientName: clientName,
+          supportedVersions: [PROTOCOL_VERSION]
+        };
+      }
+
+      function buildPairRequestPayload(clientId, clientName, pairingToken) {
+        return {
+          clientId: clientId,
+          clientName: clientName,
+          pairingToken: pairingToken
+        };
+      }
+
+      function buildAuthResponsePayload(clientId, serverNonce, clientNonce, deviceSecretB64) {
+        return {
+          clientId: clientId,
+          clientNonce: clientNonce,
+          proofHmac: hmacSha256Base64(deviceSecretB64, serverNonce + ":" + clientNonce + ":" + clientId)
+        };
+      }
+
+      function buildCommandPayload(action, extra) {
+        var payload = { action: action };
+        if (action === "set_volume" && extra && typeof extra.volume === "number") {
+          payload.volume = Math.round(extra.volume);
+        } else if (action === "select_session" && extra && typeof extra.targetSessionId === "string") {
+          payload.targetSessionId = extra.targetSessionId;
+        }
+        return payload;
+      }
+
+      function buildPingPayload(sentAt) {
+        return { sentAt: Math.round(sentAt) };
+      }
+
+      function buildSyncRequestPayload(reason) {
+        return { reason: reason || "initial" };
+      }
+
+      function buildEnvelope(type, data, seq, ts, explicitId, explicitNonce) {
+        return {
+          v: PROTOCOL_VERSION,
+          type: type,
+          id: explicitId || makeId("req"),
+          seq: seq,
+          ts: Math.round(ts),
+          nonce: explicitNonce || randomBase64(12),
+          data: data
+        };
+      }
+
+      root.__LOCALCAST_CORE__ = {
+        PROTOCOL_VERSION: PROTOCOL_VERSION,
+        sha256Bytes: sha256Bytes,
+        hmacSha256Bytes: hmacSha256Bytes,
+        hmacSha256Base64: hmacSha256Base64,
+        hmacSha256Hex: hmacSha256Hex,
+        randomBase64: randomBase64,
+        makeId: makeId,
+        buildHelloPayload: buildHelloPayload,
+        buildPairRequestPayload: buildPairRequestPayload,
+        buildAuthResponsePayload: buildAuthResponsePayload,
+        buildCommandPayload: buildCommandPayload,
+        buildPingPayload: buildPingPayload,
+        buildSyncRequestPayload: buildSyncRequestPayload,
+        buildEnvelope: buildEnvelope
+      };
+    })(typeof globalThis !== "undefined" ? globalThis : window);
+  </script>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var core = window.__LOCALCAST_CORE__;
+      var STORAGE_KEY = "localcast_pairing_v1";
+      var HEARTBEAT_MS = 10000;
+      var HEARTBEAT_TIMEOUT_MS = 25000;
+      var UNPAIRED_MSG = "This device was unpaired - scan the QR again";
+
+      // DOM elements
+      var statusDot = document.getElementById("statusDot");
+      var statusText = document.getElementById("statusText");
+      var toggleSetupBtn = document.getElementById("toggleSetupBtn");
+      var pairingPanel = document.getElementById("pairingPanel");
+      var pairingSummary = document.getElementById("pairingSummary");
+      var manualTokenInput = document.getElementById("manualTokenInput");
+      var pairSubmitBtn = document.getElementById("pairSubmitBtn");
+      var forgetBtn = document.getElementById("forgetBtn");
+
+      var artworkImg = document.getElementById("artworkImg");
+      var artworkFallback = document.getElementById("artworkFallback");
+      var fallbackLabel = document.getElementById("fallbackLabel");
+      var appMeta = document.getElementById("appMeta");
+      var trackTitle = document.getElementById("trackTitle");
+      var trackArtist = document.getElementById("trackArtist");
+      var sessionsBar = document.getElementById("sessionsBar");
+
+      var btnPrev = document.getElementById("btnPrev");
+      var btnPlayPause = document.getElementById("btnPlayPause");
+      var iconPlay = document.getElementById("iconPlay");
+      var iconPause = document.getElementById("iconPause");
+      var btnNext = document.getElementById("btnNext");
+      var btnStop = document.getElementById("btnStop");
+      var volumeSlider = document.getElementById("volumeSlider");
+      var volumeLabel = document.getElementById("volumeLabel");
+      var feedbackBar = document.getElementById("feedbackBar");
+      var feedbackText = document.getElementById("feedbackText");
+
+      // State
+      var pairing = loadPairing();
+      var pendingPairToken = extractAndCleanPairToken();
+      var ws = null;
+      var authenticated = false;
+      var wasRevoked = false;
+      var outboundSeq = 1;
+      var lastInboundSeq = -1;
+      var clockOffsetMs = 0;
+      var reconnectAttempt = 0;
+      var reconnectTimer = null;
+      var heartbeatTimer = null;
+      var lastPongAt = 0;
+      var currentState = null;
+      var pendingRequests = {};
+      var isDraggingVolume = false;
+
+      function adjustedNow() {
+        return Math.round(Date.now() + clockOffsetMs);
+      }
+
+      function loadPairing() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function savePairing(record) {
+        pairing = record;
+        wasRevoked = false;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(record)); } catch (e) {}
+        updatePairingSummary();
+      }
+
+      function clearPairing() {
+        pairing = null;
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        updatePairingSummary();
+      }
+
+      function getClientId() {
+        if (pairing && pairing.clientId) return pairing.clientId;
+        var cid = core.makeId("web");
+        try {
+          var stored = localStorage.getItem("localcast_client_id");
+          if (stored) return stored;
+          localStorage.setItem("localcast_client_id", cid);
+        } catch (e) {}
+        return cid;
+      }
+
+      function getClientName() {
+        return /iPhone|iPad/.test(navigator.userAgent) ? "iPhone Safari" : "Web Browser";
+      }
+
+      function extractAndCleanPairToken() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var tok = params.get("pair");
+          if (tok) {
+            params.delete("pair");
+            var clean = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+            window.history.replaceState({}, document.title, clean);
+            return tok;
+          }
+        } catch (e) {}
+        return null;
+      }
+
+      function updatePairingSummary() {
+        if (pairing && pairing.deviceSecret) {
+          pairingSummary.textContent = "Paired to " + (pairing.deviceName || pairing.deviceId) + " (" + pairing.clientId + "). Secret stored in localStorage.";
+        } else if (wasRevoked) {
+          pairingSummary.textContent = UNPAIRED_MSG;
+        } else {
+          pairingSummary.textContent = "Not paired. Scan the Android QR code or enter a one-time pairing token.";
+        }
+      }
+
+      function handleUnpairedState() {
+        wasRevoked = true;
+        clearPairing();
+        pendingPairToken = null;
+        authenticated = false;
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+        if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+        setStatus("error", "Unpaired");
+        setFeedback("err", UNPAIRED_MSG);
+        pairingSummary.textContent = UNPAIRED_MSG;
+        pairingPanel.classList.remove("hidden");
+        renderState(null);
+      }
+
+      function setStatus(mode, text) {
+        statusDot.className = "dot" + (mode ? " " + mode : "");
+        statusText.textContent = text;
+      }
+
+      function setFeedback(kind, text) {
+        feedbackBar.className = "feedback" + (kind ? " " + kind : "");
+        feedbackText.textContent = text;
+      }
+
+      function wsUrl() {
+        var proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+        var wsPath = window.location.pathname.indexOf("/remote") === 0 ? "/ws/mediaremote" : "/mediaremote";
+        return proto + "//" + window.location.host + wsPath;
+      }
+
+      function sendEnvelope(type, data, explicitSeq) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return null;
+        var seq = typeof explicitSeq === "number" ? explicitSeq : outboundSeq++;
+        var env = core.buildEnvelope(type, data, seq, adjustedNow());
+        ws.send(JSON.stringify(env));
+        return env.id;
+      }
+
+      function connect() {
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+        if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+        if (ws) {
+          try { ws.onclose = null; ws.close(); } catch (e) {}
+          ws = null;
+        }
+        authenticated = false;
+        outboundSeq = 1;
+        lastInboundSeq = -1;
+        clockOffsetMs = 0;
+
+        if (!pendingPairToken && (!pairing || !pairing.deviceSecret)) {
+          if (wasRevoked) {
+            setStatus("error", "Unpaired");
+            setFeedback("err", UNPAIRED_MSG);
+          } else {
+            setStatus("", "Pairing required");
+            setFeedback("", "Scan QR code on Xiaomi to pair this browser");
+          }
+          pairingPanel.classList.remove("hidden");
+          renderState(null);
+          return;
+        }
+
+        if (pendingPairToken) {
+          wasRevoked = false;
+        }
+
+        setStatus("busy", reconnectAttempt > 0 ? "Reconnecting (" + reconnectAttempt + ")…" : "Connecting…");
+        ws = new WebSocket(wsUrl());
+
+        ws.onopen = function () {
+          reconnectAttempt = 0;
+          lastPongAt = Date.now();
+          sendEnvelope(
+            "hello",
+            core.buildHelloPayload(getClientId(), getClientName()),
+            0
+          );
+          outboundSeq = 1;
+        };
+
+        ws.onmessage = function (evt) {
+          var env;
+          try { env = JSON.parse(evt.data); } catch (e) { return; }
+          if (!env || env.v !== core.PROTOCOL_VERSION) return;
+
+          if (env.type !== "hello_ack") {
+            if (typeof env.seq !== "number" || env.seq <= lastInboundSeq) return;
+            lastInboundSeq = env.seq;
+          }
+
+          switch (env.type) {
+            case "hello_ack":
+              if (env.data && typeof env.data.serverTime === "number") {
+                clockOffsetMs = env.data.serverTime - Date.now();
+              }
+              if (pendingPairToken) {
+                setStatus("busy", "Pairing…");
+                sendEnvelope(
+                  "pair_request",
+                  core.buildPairRequestPayload(getClientId(), getClientName(), pendingPairToken)
+                );
+              } else if (env.data.requiresPairing) {
+                handleUnpairedState();
+                ws.close();
+              } else {
+                setStatus("busy", "Authenticating…");
+              }
+              break;
+
+            case "pair_ack":
+              pendingPairToken = null;
+              savePairing({
+                clientId: getClientId(),
+                deviceId: env.data.deviceId,
+                deviceName: env.data.deviceName,
+                deviceSecret: env.data.deviceSecret,
+                keyFingerprint: env.data.keyFingerprint
+              });
+              pairingPanel.classList.add("hidden");
+              setStatus("busy", "Authenticating…");
+              break;
+
+            case "auth_challenge":
+              if (!pairing || !pairing.deviceSecret) {
+                setStatus("error", "Missing secret");
+                ws.close();
+                return;
+              }
+              var clientNonce = core.randomBase64(18);
+              sendEnvelope(
+                "auth_response",
+                core.buildAuthResponsePayload(
+                  getClientId(),
+                  env.data.serverNonce,
+                  clientNonce,
+                  pairing.deviceSecret
+                )
+              );
+              break;
+
+            case "auth_ok":
+              authenticated = true;
+              wasRevoked = false;
+              setStatus("connected", "Connected · " + ((pairing && pairing.deviceName) || "Android"));
+              setFeedback("ok", "Authenticated · Ready");
+              startHeartbeat();
+              sendEnvelope("sync_request", core.buildSyncRequestPayload("initial"));
+              break;
+
+            case "pong":
+              lastPongAt = Date.now();
+              break;
+
+            case "state":
+              renderState(env.data);
+              break;
+
+            case "ack":
+              var reqAction = env.data.action;
+              if (env.data.status === "accepted") {
+                setFeedback("ok", "Accepted by Android: " + reqAction);
+              } else {
+                setFeedback("err", "Unsupported / Error: " + (env.data.reason || reqAction));
+              }
+              delete pendingRequests[env.data.requestId];
+              break;
+
+            case "error":
+              if (env.data.code === "DEVICE_REVOKED") {
+                handleUnpairedState();
+                try { ws.close(); } catch (e) {}
+              } else {
+                setFeedback("err", "Error (" + env.data.code + "): " + env.data.message);
+                if (env.data.code === "PAIRING_EXPIRED" || env.data.code === "INVALID_TOKEN") {
+                  pendingPairToken = null;
+                  setStatus("error", env.data.code);
+                  pairingPanel.classList.remove("hidden");
+                }
+              }
+              break;
+          }
+        };
+
+        ws.onclose = function () {
+          authenticated = false;
+          if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+          scheduleReconnect();
+        };
+
+        ws.onerror = function () {
+          // onclose handles reconnect
+        };
+      }
+
+      function scheduleReconnect() {
+        if (!pendingPairToken && (!pairing || !pairing.deviceSecret)) {
+          if (!wasRevoked) {
+            setStatus("", "Disconnected");
+          }
+          renderState(null);
+          return;
+        }
+        reconnectAttempt++;
+        var delayMs = Math.min(Math.pow(2, Math.min(reconnectAttempt - 1, 4)) * 1000, 16000);
+        setStatus("busy", "Reconnecting in " + Math.round(delayMs / 1000) + "s…");
+        reconnectTimer = setTimeout(connect, delayMs);
+      }
+
+      function startHeartbeat() {
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        heartbeatTimer = setInterval(function () {
+          if (!ws || ws.readyState !== WebSocket.OPEN) return;
+          if (Date.now() - lastPongAt > HEARTBEAT_TIMEOUT_MS) {
+            ws.close();
+            return;
+          }
+          sendEnvelope("ping", core.buildPingPayload(adjustedNow()));
+        }, HEARTBEAT_MS);
+      }
+
+      function dispatchCommand(action, extra) {
+        if (!authenticated || !ws || ws.readyState !== WebSocket.OPEN) {
+          setFeedback("err", "Not connected to Android receiver");
+          return;
+        }
+        var payload = core.buildCommandPayload(action, extra);
+        var id = sendEnvelope("command", payload);
+        if (id) {
+          pendingRequests[id] = action;
+          setFeedback("", "Sent: " + action + "…");
+        }
+      }
+
+      function renderState(state) {
+        currentState = state;
+        if (!state) {
+          appMeta.textContent = "No Active Player";
+          trackTitle.textContent = wasRevoked ? "Device Unpaired" : "Not Connected";
+          trackArtist.textContent = wasRevoked ? UNPAIRED_MSG : "Pair or wait for Xiaomi receiver";
+          artworkImg.classList.add("hidden");
+          artworkFallback.classList.remove("hidden");
+          fallbackLabel.textContent = "No Artwork";
+          sessionsBar.classList.add("hidden");
+          btnPrev.disabled = true;
+          btnPlayPause.disabled = true;
+          btnNext.disabled = true;
+          btnStop.disabled = true;
+          volumeSlider.disabled = true;
+          return;
+        }
+
+        appMeta.textContent = (state.appName || "No Active Player") + " · " + state.playbackState;
+        trackTitle.textContent = state.title || "No Track Title";
+        trackArtist.textContent = state.artist || state.deviceName || "—";
+
+        if (state.artworkBase64) {
+          artworkImg.src = "data:image/jpeg;base64," + state.artworkBase64;
+          artworkImg.classList.remove("hidden");
+          artworkFallback.classList.add("hidden");
+        } else {
+          artworkImg.classList.add("hidden");
+          artworkFallback.classList.remove("hidden");
+          fallbackLabel.textContent = state.appName || "No Artwork";
+        }
+
+        var supported = {};
+        (state.supportedActions || []).forEach(function (a) { supported[a] = true; });
+        var isPlaying = state.playbackState === "PLAYING";
+        iconPlay.classList.toggle("hidden", isPlaying);
+        iconPause.classList.toggle("hidden", !isPlaying);
+
+        btnPrev.disabled = !authenticated || !supported.previous;
+        btnNext.disabled = !authenticated || !supported.next;
+        btnStop.disabled = !authenticated || !supported.stop;
+        btnStop.title = supported.stop ? "Stop" : "Stop unsupported by " + (state.appName || "player");
+        btnPlayPause.disabled = !authenticated || !(isPlaying ? supported.pause : supported.play);
+
+        if (state.volume) {
+          volumeSlider.disabled = !authenticated || !!state.volume.isFixed;
+          if (!isDraggingVolume) {
+            volumeSlider.value = String(state.volume.percent);
+            volumeLabel.textContent = state.volume.isFixed ? "Fixed" : state.volume.percent + "%";
+          }
+        }
+
+        // Session picker when multiple sessions exist
+        sessionsBar.innerHTML = "";
+        if (state.sessions && state.sessions.length > 1) {
+          sessionsBar.classList.remove("hidden");
+          state.sessions.forEach(function (s) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.className = "session-btn" + (s.isSelected ? " active" : "");
+            b.textContent = s.appName;
+            b.addEventListener("click", function () {
+              dispatchCommand("select_session", { targetSessionId: s.sessionId });
+            });
+            sessionsBar.appendChild(b);
+          });
+        } else {
+          sessionsBar.classList.add("hidden");
+        }
+      }
+
+      // Wire button listeners
+      btnPrev.addEventListener("click", function () { dispatchCommand("previous"); });
+      btnNext.addEventListener("click", function () { dispatchCommand("next"); });
+      btnStop.addEventListener("click", function () { dispatchCommand("stop"); });
+      btnPlayPause.addEventListener("click", function () {
+        var isPlaying = currentState && currentState.playbackState === "PLAYING";
+        dispatchCommand(isPlaying ? "pause" : "play");
+      });
+
+      volumeSlider.addEventListener("input", function () {
+        isDraggingVolume = true;
+        volumeLabel.textContent = volumeSlider.value + "%";
+      });
+      volumeSlider.addEventListener("change", function () {
+        isDraggingVolume = false;
+        dispatchCommand("set_volume", { volume: parseInt(volumeSlider.value, 10) });
+      });
+
+      toggleSetupBtn.addEventListener("click", function () {
+        pairingPanel.classList.toggle("hidden");
+      });
+      pairSubmitBtn.addEventListener("click", function () {
+        var tok = (manualTokenInput.value || "").trim();
+        if (!tok) return;
+        wasRevoked = false;
+        pendingPairToken = tok;
+        manualTokenInput.value = "";
+        pairingPanel.classList.add("hidden");
+        connect();
+      });
+      forgetBtn.addEventListener("click", function () {
+        wasRevoked = false;
+        clearPairing();
+        if (ws) ws.close();
+        setStatus("", "Unpaired");
+        setFeedback("", "Stored secret cleared from localStorage");
+      });
+
+      // Reconnect immediately when returning to Safari or home-screen web app
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") {
+          if (!ws || ws.readyState !== WebSocket.OPEN || !authenticated) {
+            reconnectAttempt = 0;
+            connect();
+          } else {
+            sendEnvelope("sync_request", core.buildSyncRequestPayload("reconnect"));
+          }
+        }
+      });
+
+      updatePairingSummary();
+      connect();
+    })();
+  </script>
+</body>
+</html>

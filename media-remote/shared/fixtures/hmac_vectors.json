@@ -1,0 +1,32 @@
+{
+  "vectors": [
+    {
+      "name": "auth_response_standard",
+      "secretBase64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+      "message": "U2VydmVyTm9uY2UxMjM0NTY3ODkwMTIzNA==:Q2xpZW50Tm9uY2UxMjM0NTY3OA==:web-ab12cd34",
+      "expectedHmacHex": "90ecb6156e3c22f76c241b7e23ba41001a2c4e78051e430f4614a0ad52e305ff",
+      "expectedHmacBase64": "kOy2FW48IvdsJBt+I7pBABosTngFHkMPRhSgrVLjBf8="
+    },
+    {
+      "name": "empty_message",
+      "secretBase64": "c2ltcGxlLWxvY2FsLXNlY3JldC1rZXktMzItYnl0ZXMh",
+      "message": "",
+      "expectedHmacHex": "4254a96fb180c24132ded16be390363da134e60dae7f94ef4bbe792c0f188c7d",
+      "expectedHmacBase64": "QlSpb7GAwkEy3tFr45A2PaE05g2uf5TvS755LA8YjH0="
+    },
+    {
+      "name": "long_key_over_64_bytes",
+      "secretBase64": "WlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlo=",
+      "message": "long-key:nonce-abc:web-99887766",
+      "expectedHmacHex": "cd2ca502a804dbf49450320e795f9ef0081001dc2172b82204180b84089519f0",
+      "expectedHmacBase64": "zSylAqgE2/SUUDIOeV+e8AgQAdwhcrgiBBgLhAiVGfA="
+    },
+    {
+      "name": "utf8_device_message",
+      "secretBase64": "52T9QBPJezTY9NK5ijgBbj0JIuSuj7DaZz4BCCNUp2c=",
+      "message": "nonce+1/=:cNonce==:Xiaomi-14-Pro-🎵",
+      "expectedHmacHex": "37aedb565cd0b5808e5819c73a7163d8916f85af46e530421135db2e2815a79b",
+      "expectedHmacBase64": "N67bVlzQtYCOWBnHOnFj2JFvha9G5TBCETXbLigVp5s="
+    }
+  ]
+}

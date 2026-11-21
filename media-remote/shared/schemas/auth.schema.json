@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mediaremote.local/schemas/auth.schema.json",
+  "title": "MediaRemoteAuth",
+  "description": "One-time QR token pairing swap and HMAC-SHA256 challenge-response authentication payloads.",
+  "oneOf": [
+    {
+      "title": "PairRequest",
+      "type": "object",
+      "required": ["clientId", "clientName", "pairingToken"],
+      "additionalProperties": false,
+      "properties": {
+        "clientId": { "type": "string", "minLength": 8, "maxLength": 64 },
+        "clientName": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "pairingToken": { "type": "string", "minLength": 16, "maxLength": 128 }
+      }
+    },
+    {
+      "title": "PairAck",
+      "type": "object",
+      "required": ["deviceId", "deviceName", "deviceSecret", "keyFingerprint"],
+      "additionalProperties": false,
+      "properties": {
+        "deviceId": { "type": "string", "minLength": 8, "maxLength": 64 },
+        "deviceName": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "deviceSecret": { "type": "string", "minLength": 32, "maxLength": 128 },
+        "keyFingerprint": { "type": "string", "minLength": 8, "maxLength": 64 }
+      }
+    },
+    {
+      "title": "AuthChallenge",
+      "type": "object",
+      "required": ["serverNonce", "sessionSalt"],
+      "additionalProperties": false,
+      "properties": {
+        "serverNonce": { "type": "string", "minLength": 16, "maxLength": 128 },
+        "sessionSalt": { "type": "string", "minLength": 16, "maxLength": 128 }
+      }
+    },
+    {
+      "title": "AuthResponse",
+      "type": "object",
+      "required": ["clientId", "clientNonce", "proofHmac"],
+      "additionalProperties": false,
+      "properties": {
+        "clientId": { "type": "string", "minLength": 8, "maxLength": 64 },
+        "clientNonce": { "type": "string", "minLength": 16, "maxLength": 128 },
+        "proofHmac": { "type": "string", "minLength": 32, "maxLength": 128 }
+      }
+    },
+    {
+      "title": "AuthOk",
+      "type": "object",
+      "required": ["clientId", "serverProofHmac", "encryptionEnabled"],
+      "additionalProperties": false,
+      "properties": {
+        "clientId": { "type": "string", "minLength": 8, "maxLength": 64 },
+        "serverProofHmac": { "type": "string", "minLength": 32, "maxLength": 128 },
+        "encryptionEnabled": { "type": "boolean" }
+      }
+    }
+  ]
+}

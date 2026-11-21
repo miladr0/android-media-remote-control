@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "type": "ping",
+  "id": "req-ping0001",
+  "seq": 10,
+  "ts": 1763712001000,
+  "nonce": "CwwNDg8QERITFBUW",
+  "data": {
+    "sentAt": 1763712001000
+  }
+}

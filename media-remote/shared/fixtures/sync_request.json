@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "type": "sync_request",
+  "id": "req-sync0001",
+  "seq": 11,
+  "ts": 1763712001100,
+  "nonce": "DA0ODxAREhMUFRYX",
+  "data": {
+    "reason": "initial"
+  }
+}

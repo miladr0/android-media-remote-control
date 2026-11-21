@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "type": "auth_response",
+  "id": "req-auth0001",
+  "seq": 2,
+  "ts": 1763712000200,
+  "nonce": "AwQFBgcICQoLDA0O",
+  "data": {
+    "clientId": "web-ab12cd34",
+    "clientNonce": "Q2xpZW50Tm9uY2UxMjM0NTY3OA==",
+    "proofHmac": "kOy2FW48IvdsJBt+I7pBABosTngFHkMPRhSgrVLjBf8="
+  }
+}

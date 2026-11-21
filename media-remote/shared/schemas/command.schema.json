@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mediaremote.local/schemas/command.schema.json",
+  "title": "MediaRemoteCommand",
+  "description": "Client-to-Android remote playback, session, or volume command payload.",
+  "type": "object",
+  "required": ["action"],
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "play",
+        "pause",
+        "stop",
+        "next",
+        "previous",
+        "set_volume",
+        "select_session"
+      ]
+    },
+    "targetSessionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "volume": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "const": "set_volume" } } },
+      "then": { "required": ["volume"] }
+    },
+    {
+      "if": { "properties": { "action": { "const": "select_session" } } },
+      "then": { "required": ["targetSessionId"] }
+    }
+  ]
+}

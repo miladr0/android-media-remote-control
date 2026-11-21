@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mediaremote.local/schemas/pairing-qr.schema.json",
+  "title": "MediaRemotePairingQR",
+  "description": "Pairing URL format displayed as QR code by Android receiver.",
+  "type": "object",
+  "required": ["url", "deviceId", "deviceName", "ip", "port", "pairingToken", "expiresAt"],
+  "additionalProperties": false,
+  "properties": {
+    "url": { "type": "string", "pattern": "^http://.+:\\d+/\\?pair=.+$" },
+    "deviceId": { "type": "string", "minLength": 8, "maxLength": 64 },
+    "deviceName": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "ip": { "type": "string", "minLength": 7, "maxLength": 45 },
+    "port": { "type": "integer", "minimum": 1024, "maximum": 65535 },
+    "pairingToken": { "type": "string", "minLength": 16, "maxLength": 128 },
+    "expiresAt": { "type": "integer", "minimum": 1700000000000 }
+  }
+}

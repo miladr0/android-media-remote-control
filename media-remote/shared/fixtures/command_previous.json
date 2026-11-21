@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "type": "command",
+  "id": "req-cmd00005",
+  "seq": 7,
+  "ts": 1763712000700,
+  "nonce": "CAkKCwwNDg8QERIT",
+  "data": {
+    "action": "previous"
+  }
+}

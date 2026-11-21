@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "type": "hello",
+  "id": "req-hello001",
+  "seq": 0,
+  "ts": 1763712000000,
+  "nonce": "AQIDBAUGBwgJCgsM",
+  "data": {
+    "clientId": "web-ab12cd34",
+    "clientName": "iPhone Safari",
+    "supportedVersions": [
+      1
+    ]
+  }
+}

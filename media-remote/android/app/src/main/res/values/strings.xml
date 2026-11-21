@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">LocalCast Receiver</string>
+    <string name="listener_service_name">LocalCast Media Session Bridge</string>
+</resources>
