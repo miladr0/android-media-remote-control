@@ -182,10 +182,10 @@ export function LiveTestbench() {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-slate-200 pb-6">
         <div className="space-y-1.5 max-w-2xl">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Safari Web Remote &amp; Receiver Testbench
+            Browser Web Remote &amp; Android Receiver Testbench
           </h1>
           <p className="text-sm text-slate-600 leading-relaxed">
-            Runs the exact static HTML/CSS/JS web remote served by the Android Ktor receiver (<span className="font-mono text-xs">/assets/web/index.html</span>) against the simulated Xiaomi host over <span className="font-mono text-xs">/ws/mediaremote</span> with one-time QR token swap, pure-JS HMAC-SHA256 auth, and Ajv schema validation.
+            Runs the exact static HTML/CSS/JS web remote served by the Android Ktor receiver (<span className="font-mono text-xs">/assets/web/index.html</span>) against the simulated Android host over <span className="font-mono text-xs">/ws/mediaremote</span> with one-time QR token swap, pure-JS HMAC-SHA256 auth, and Ajv schema validation.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -238,11 +238,11 @@ export function LiveTestbench() {
           </div>
         </section>
 
-        {/* Column 2: Xiaomi Android Receiver Host */}
+        {/* Column 2: Android Receiver Host */}
         <section className="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-6 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-semibold text-slate-900">02. Xiaomi Android Receiver Host</h2>
+              <h2 className="text-base font-semibold text-slate-900">02. Android Receiver Host</h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 MediaSessionManager · NotificationListenerService · Ktor CIO :8765
               </p>
@@ -282,8 +282,19 @@ export function LiveTestbench() {
                       }`}
                     >
                       <td className="py-2.5 px-3">
-                        <div className="font-medium text-slate-900">{s.appName}</div>
-                        <div className="font-mono text-[11px] text-slate-500">{s.packageName}</div>
+                        <div className="flex items-center gap-2">
+                          {s.appIconB64 && (
+                            <img
+                              src={`data:image/png;base64,${s.appIconB64}`}
+                              alt=""
+                              className="w-5 h-5 rounded"
+                            />
+                          )}
+                          <div>
+                            <div className="font-medium text-slate-900">{s.appName ?? s.packageName}</div>
+                            <div className="font-mono text-[11px] text-slate-500">{s.packageName}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-2.5 px-3 text-slate-700 max-w-[220px] truncate">{s.title ?? '—'}</td>
                       <td className="py-2.5 px-3 font-mono text-slate-700">{s.playbackState}</td>

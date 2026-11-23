@@ -21,6 +21,7 @@ import com.mediaremote.receiver.media.MediaSessionCoordinator
 import com.mediaremote.receiver.network.MediaWebSocketServer
 import com.mediaremote.receiver.protocol.ProtocolConstants
 import com.mediaremote.receiver.security.PairingManager
+import com.mediaremote.receiver.service.MediaRemoteForegroundService
 import java.net.Inet4Address
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,8 +35,10 @@ fun ReceiverScreen(
     val state by coordinator.state.collectAsState()
     val pairedClients by pairingManager.pairedClients.collectAsState()
     val connectedClients by webSocketServer.connectedClients.collectAsState()
+    val activeConnectionCount by webSocketServer.activeConnectionCount.collectAsState()
+    val serviceRunning by MediaRemoteForegroundService.isRunning.collectAsState()
     var showQrSheet by remember { mutableStateOf(false) }
-    var showXiaomiWizard by remember { mutableStateOf(false) }
+    var showReliabilityDialog by remember { mutableStateOf(false) }
     var localIp by remember { mutableStateOf(resolveLocalIpv4(context)) }
     val listenerGranted = MediaNotificationListenerService.isPermissionGranted(context)
 
@@ -73,14 +76,17 @@ fun ReceiverScreen(
             TopAppBar(
                 title = { Text("LocalCast Receiver", fontWeight = FontWeight.SemiBold) },
                 actions = {
-                    TextButton(onClick = { showXiaomiWizard = true }) {
-                        Text("Xiaomi Setup")
+                    TextButton(onClick = { showReliabilityDialog = true }) {
+                        Text("Setup")
                     }
                     Button(
-                        onClick = { showQrSheet = true },
+                        onClick = {
+                            MediaRemoteForegroundService.startService(context)
+                            showQrSheet = true
+                        },
                         enabled = localIp != null
                     ) {
-                        Text("Pair iPhone")
+                        Text("Pair Device")
                     }
                 }
             )
@@ -97,10 +103,10 @@ fun ReceiverScreen(
                 item {
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Notification Listener Required", style = MaterialTheme.typography.titleMedium)
-                            Text("Android requires Notification Access so MediaSessionManager can inspect Spotify, YouTube, and VLC.")
-                            Button(onClick = { showXiaomiWizard = true }) {
-                                Text("Open Setup Checklist")
+                            Text("Notification Access Required", style = MaterialTheme.typography.titleMedium)
+                            Text("Android requires Notification Access so MediaSessionManager can inspect active media apps.")
+                            Button(onClick = { showReliabilityDialog = true }) {
+                                Text("Open Reliability Setup")
                             }
                         }
                     }
@@ -117,7 +123,22 @@ fun ReceiverScreen(
                     }
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Web Remote URL", style = MaterialTheme.typography.titleMedium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Web Remote URL", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                text = if (serviceRunning) "Server Running" else "Server Stopped",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (serviceRunning) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                        }
                         if (ip != null) {
                             Text(
                                 text = "http://$ip:${ProtocolConstants.DEFAULT_PORT}/",
@@ -130,7 +151,10 @@ fun ReceiverScreen(
                                 fontFamily = FontFamily.Monospace,
                                 style = MaterialTheme.typography.bodySmall
                             )
-                            Text("Open this URL in iPhone Safari or tap 'Pair iPhone' for QR setup.", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "Open this address in any browser on the same Wi-Fi (phone, tablet, or computer), or tap 'Pair Device' for a QR code.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         } else {
                             Text(
                                 text = "Wi-Fi is off or local IPv4 address is unavailable.",
@@ -138,15 +162,20 @@ fun ReceiverScreen(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
-                                text = "Connect this Android device to your local Wi-Fi network to generate http://<wifi-ip>:${ProtocolConstants.DEFAULT_PORT}/ and pair an iPhone.",
+                                text = "Connect this Android device to your local Wi-Fi network to generate http://<wifi-ip>:${ProtocolConstants.DEFAULT_PORT}/ and pair a browser.",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
                         Text("mDNS Service: ${ProtocolConstants.SERVICE_TYPE}", style = MaterialTheme.typography.bodySmall)
                         Text(
-                            "Connected browsers: ${if (connectedClients.isEmpty()) "None" else connectedClients.joinToString()}",
+                            "Connected browsers: ${if (connectedClients.isEmpty()) "None" else connectedClients.joinToString()} ($activeConnectionCount socket(s))",
                             style = MaterialTheme.typography.bodySmall
                         )
+                        if (!serviceRunning) {
+                            OutlinedButton(onClick = { MediaRemoteForegroundService.startService(context) }) {
+                                Text("Start Local Server")
+                            }
+                        }
                     }
                 }
             }
@@ -154,11 +183,13 @@ fun ReceiverScreen(
             item {
                 Card {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Active Media Session", style = MaterialTheme.typography.titleMedium)
-                        Text("App: ${state.appName ?: "No active media session"}")
+                        val playerDisplay = state.appName ?: state.packageName ?: "No active media session"
+                        val stateDisplay = if (state.isLastPlayed) "Last played" else state.playbackState
+                        Text("Media Session", style = MaterialTheme.typography.titleMedium)
+                        Text("App: $playerDisplay")
                         Text("Track: ${state.title ?: "—"}")
                         Text("Artist: ${state.artist ?: "—"}")
-                        Text("State: ${state.playbackState}")
+                        Text("State: $stateDisplay")
                         Text(
                             "Supported Actions: ${if (state.supportedActions.isEmpty()) "None" else state.supportedActions.joinToString()}",
                             style = MaterialTheme.typography.bodySmall
@@ -181,7 +212,7 @@ fun ReceiverScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text(summary.appName, fontWeight = FontWeight.Medium)
+                                Text(summary.appName ?: summary.packageName, fontWeight = FontWeight.Medium)
                                 Text(summary.title ?: summary.playbackState, style = MaterialTheme.typography.bodySmall)
                             }
                             if (summary.isSelected) {
@@ -197,11 +228,11 @@ fun ReceiverScreen(
             }
 
             item {
-                Text("Paired iPhones (${pairedClients.size})", style = MaterialTheme.typography.titleMedium)
+                Text("Paired Devices (${pairedClients.size})", style = MaterialTheme.typography.titleMedium)
             }
             if (pairedClients.isEmpty()) {
                 item {
-                    Text("No paired iPhones yet. Tap 'Pair iPhone' to show a one-time QR code.", style = MaterialTheme.typography.bodyMedium)
+                    Text("No paired devices yet. Tap 'Pair Device' to show a one-time QR code.", style = MaterialTheme.typography.bodyMedium)
                 }
             } else {
                 items(pairedClients, key = { it.clientId }) { client ->
@@ -220,7 +251,13 @@ fun ReceiverScreen(
                             OutlinedButton(
                                 onClick = {
                                     pairingManager.revokeClient(client.clientId)
-                                    webSocketServer.disconnectClient(client.clientId)
+                                    webSocketServer.disconnectClient(client.clientId) {
+                                        if (pairingManager.pairedClients.value.isEmpty() &&
+                                            webSocketServer.activeConnectionCount.value == 0
+                                        ) {
+                                            MediaRemoteForegroundService.stopService(context)
+                                        }
+                                    }
                                 }
                             ) {
                                 Text("Revoke")
@@ -240,8 +277,8 @@ fun ReceiverScreen(
             onDismiss = { showQrSheet = false }
         )
     }
-    if (showXiaomiWizard) {
-        XiaomiSetupWizard(onDismiss = { showXiaomiWizard = false })
+    if (showReliabilityDialog) {
+        BackgroundReliabilityDialog(onDismiss = { showReliabilityDialog = false })
     }
 }
 

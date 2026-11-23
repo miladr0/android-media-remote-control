@@ -26,8 +26,8 @@ const COMPATIBILITY_ROWS = [
     metadata: 'Filename / ID3 Title, Artist',
   },
   {
-    app: 'Xiaomi MIUI Music',
-    pkg: 'com.miui.player',
+    app: 'Local Music Players',
+    pkg: 'com.android.music',
     playPause: 'Supported',
     skip: 'Supported',
     stop: 'Supported',
@@ -36,18 +36,18 @@ const COMPATIBILITY_ROWS = [
 ];
 
 const TEST_CASES = [
-  'Scanning Android QR opens http://<ip>:8765/?pair=<token> in iPhone Safari and strips ?pair=.',
+  'Opening http://<ip>:8765/?pair=<token> in any browser pairs cleanly and strips ?pair=.',
   'One-time pairing token swaps for a 256-bit deviceSecret stored in localStorage.',
   'Pure-JS HMAC-SHA256 challenge-response authenticates every WebSocket without crypto.subtle.',
   'Play and Pause dispatch via MediaController.TransportControls and report Sent -> Accepted -> State.',
-  'Stop succeeds on VLC/MIUI Music and disables/rejects cleanly on Spotify/YouTube.',
+  'Stop succeeds on VLC/local players and disables/rejects cleanly on Spotify/YouTube.',
   'Next and Previous track skips update metadata and artwork immediately.',
-  'Multi-session picker switches active target app when Spotify, YouTube, or VLC run concurrently.',
-  'Switching back to Safari or Home Screen app reconnects immediately via visibilitychange.',
-  'Xiaomi receiver remains reachable with screen off after MIUI Autostart + Battery setup.',
-  'Unauthenticated WebSocket clients are rejected with UNAUTHENTICATED before reaching media APIs.',
-  'Stale sequence numbers or reused nonces are rejected by ReplayGuard.',
-  'Revoking a browser on Xiaomi immediately closes its socket with DEVICE_REVOKED.',
+  'App name & 96x96 icon resolve via <queries> package visibility and render alongside the player and session picker.',
+  'Last-playing player persists in SharedPreferences and resumes via MediaBrowser / KEYCODE_MEDIA_PLAY when idle.',
+  'Switching back to any browser or Home Screen PWA reconnects immediately via visibilitychange.',
+  'Unauthenticated and replayed WebSocket frames are rejected (UNAUTHENTICATED / REPLAY_DETECTED).',
+  'Revoking the last device with zero connections stops the foreground server automatically.',
+  'Notification Exit stops the server cleanly (START_NOT_STICKY) without auto-restarting on boot.',
 ];
 
 export function SetupAndArchitecture() {
@@ -55,10 +55,10 @@ export function SetupAndArchitecture() {
     <div className="space-y-8">
       <div className="border-b border-slate-200 pb-6 space-y-1.5 max-w-3xl">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Architecture, Xiaomi Setup &amp; Safari Web Remote
+          Architecture, Android Reliability &amp; Browser Web Remote
         </h1>
         <p className="text-sm text-slate-600 leading-relaxed">
-          The Xiaomi Android receiver serves a zero-dependency Safari web remote directly from Ktor (<span className="font-mono text-xs">http://&lt;android-ip&gt;:8765/</span>) over your local Wi-Fi, with Add to Home Screen full-screen support and no iOS app install required.
+          The Android receiver serves a zero-dependency web remote directly from Ktor (<span className="font-mono text-xs">http://&lt;android-ip&gt;:8765/</span>) over your local Wi-Fi for any browser (phone, tablet, or computer), with full-screen Home Screen support.
         </p>
       </div>
 
@@ -73,45 +73,45 @@ export function SetupAndArchitecture() {
         <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-2">
           <h2 className="text-sm font-semibold text-slate-900">02. Plain-HTTP HMAC Auth &amp; Trade-Off</h2>
           <p className="text-xs text-slate-600 leading-relaxed">
-            Because Safari blocks <span className="font-mono text-slate-800">crypto.subtle</span> on plain <span className="font-mono text-slate-800">http://</span> LAN URLs, pairing swaps a one-time QR token for a 256-bit secret stored in <span className="font-mono text-slate-800">localStorage</span> and authenticates every socket with pure-JS HMAC-SHA256 + <span className="font-mono text-slate-800">ReplayGuard</span>. TLS is omitted to avoid self-signed cert friction on DHCP IPs; use on trusted Wi-Fi.
+            Because mobile browsers disable <span className="font-mono text-slate-800">crypto.subtle</span> on plain <span className="font-mono text-slate-800">http://</span> LAN URLs, pairing swaps a one-time QR token for a 256-bit secret stored in <span className="font-mono text-slate-800">localStorage</span> and authenticates every socket with pure-JS HMAC-SHA256 + <span className="font-mono text-slate-800">ReplayGuard</span>. Use on trusted Wi-Fi.
           </p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-2">
           <h2 className="text-sm font-semibold text-slate-900">03. Honest Command Confirmation</h2>
           <p className="text-xs text-slate-600 leading-relaxed">
-            Controls display real states: <span className="font-mono text-slate-800">Sent</span> on socket write, <span className="font-mono text-slate-800">Accepted by Android</span> on <span className="font-mono text-slate-800">ack</span>, or <span className="font-mono text-slate-800">Unsupported / Error</span> when <span className="font-mono text-slate-800">PlaybackState.actions</span> omits an action.
+            Controls display real states: <span className="font-mono text-slate-800">Sent</span> on socket write, <span className="font-mono text-slate-800">Accepted by Android</span> on <span className="font-mono text-slate-800">ack</span>, or <span className="font-mono text-slate-800">Unsupported / Error</span> when <span className="font-mono text-slate-800">PlaybackState.actions</span> omits an action or resume fails.
           </p>
         </div>
       </div>
 
-      {/* Xiaomi & iPhone Safari Setup Checklist */}
+      {/* Android & Browser Setup Checklist */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-          <h2 className="text-base font-semibold text-slate-900">Xiaomi MIUI / HyperOS Setup</h2>
+          <h2 className="text-base font-semibold text-slate-900">Android Background Reliability Setup</h2>
           <ol className="space-y-3 text-xs text-slate-700 leading-relaxed list-decimal pl-4">
             <li>
-              Open <span className="font-mono text-slate-900">media-remote/android</span> in Android Studio Koala+ and run on your Xiaomi device (<span className="font-mono">minSdk 26</span>, <span className="font-mono">targetSdk 35</span>).
+              Install <span className="font-mono text-slate-900">app-debug.apk</span> from GitHub Releases or build <span className="font-mono text-slate-900">media-remote/android</span> (<span className="font-mono">minSdk 26</span>, <span className="font-mono">targetSdk 35</span>).
             </li>
             <li>
-              <span className="font-medium text-slate-900">Notification Listener Access:</span> Enable <span className="font-mono">LocalCast Media Session Bridge</span> so <span className="font-mono">MediaSessionManager.getActiveSessions()</span> is authorized.
+              <span className="font-medium text-slate-900">Notification Access:</span> Enable <span className="font-mono">LocalCast Media Session Bridge</span> so <span className="font-mono">MediaSessionManager.getActiveSessions()</span> is authorized.
             </li>
             <li>
-              <span className="font-medium text-slate-900">Battery Saver &amp; Autostart:</span> Set Battery Saver to <span className="font-medium">No restrictions</span> and enable <span className="font-medium">Autostart</span> in MIUI Security Center.
+              <span className="font-medium text-slate-900">Battery &amp; OEM Background Rules:</span> Set Battery to <span className="font-medium">Unrestricted</span> and use the built-in Setup dialog for Xiaomi, Samsung, Huawei/Honor, Oppo/Realme/OnePlus, Vivo, or Asus shortcuts.
             </li>
           </ol>
         </section>
 
         <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-          <h2 className="text-base font-semibold text-slate-900">iPhone Safari &amp; Add to Home Screen</h2>
+          <h2 className="text-base font-semibold text-slate-900">Any Browser on Same Wi-Fi</h2>
           <ol className="space-y-3 text-xs text-slate-700 leading-relaxed list-decimal pl-4">
             <li>
-              Tap <span className="font-medium text-slate-900">Pair iPhone</span> on Xiaomi to display the QR code (<span className="font-mono">http://&lt;ip&gt;:8765/?pair=&lt;token&gt;</span>).
+              Tap <span className="font-medium text-slate-900">Pair Device</span> on Android to display the QR code (<span className="font-mono">http://&lt;ip&gt;:8765/?pair=&lt;token&gt;</span>), or open that address from any phone, tablet, or computer browser.
             </li>
             <li>
-              Scan with the iPhone Camera app and open in Safari. The page swaps the one-time token for a per-device secret, stores it in <span className="font-mono">localStorage</span>, and strips <span className="font-mono">?pair=</span> from the URL.
+              The page swaps the one-time token for a per-device secret stored in <span className="font-mono">localStorage</span> and strips <span className="font-mono">?pair=</span> from the URL.
             </li>
             <li>
-              Tap Safari&rsquo;s <span className="font-medium text-slate-900">Share -&gt; Add to Home Screen</span> to launch LocalCast full-screen with <span className="font-mono">visibilitychange</span> auto-reconnect.
+              Add to Home Screen (iOS Safari or Android Chrome) for a full-screen remote with <span className="font-mono">visibilitychange</span> auto-reconnect.
             </li>
           </ol>
         </section>
@@ -120,7 +120,7 @@ export function SetupAndArchitecture() {
       {/* Compatibility Matrix Table */}
       <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Xiaomi Media App Capability Matrix</h2>
+          <h2 className="text-base font-semibold text-slate-900">Android Media App Capability Matrix</h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Android apps expose differing PlaybackState bitmasks; LocalCast disables unsupported buttons and returns explicit errors instead of faking control.
           </p>

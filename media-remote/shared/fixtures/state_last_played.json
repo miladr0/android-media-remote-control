@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "type": "state",
+  "id": "evt-state002",
+  "seq": 2,
+  "ts": 1763712001300,
+  "nonce": "Dg8QERITFBUWFxgZ",
+  "data": {
+    "deviceId": "and-pixel8",
+    "deviceName": "Pixel 8",
+    "sessionId": null,
+    "packageName": "com.spotify.music",
+    "appName": "Spotify",
+    "appIconB64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    "title": "Midnight Signal",
+    "artist": "Kiasmos",
+    "album": null,
+    "durationMs": null,
+    "positionMs": null,
+    "playbackState": "STOPPED",
+    "isLastPlayed": true,
+    "supportedActions": [
+      "play"
+    ],
+    "artworkBase64": null,
+    "artworkHash": null,
+    "volume": {
+      "current": 9,
+      "max": 15,
+      "percent": 60,
+      "isFixed": false
+    },
+    "sessions": []
+  }
+}

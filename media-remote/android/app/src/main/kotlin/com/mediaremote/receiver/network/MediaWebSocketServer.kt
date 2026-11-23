@@ -54,11 +54,18 @@ class MediaWebSocketServer(
     private val _connectedClients = MutableStateFlow<List<String>>(emptyList())
     val connectedClients: StateFlow<List<String>> = _connectedClients.asStateFlow()
 
+    private val _activeConnectionCount = MutableStateFlow(0)
+    val activeConnectionCount: StateFlow<Int> = _activeConnectionCount.asStateFlow()
+
+    @Synchronized
     fun start() {
         if (engine != null) return
         if (!scope.isActive) {
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         }
+        sessions.clear()
+        updateConnectedSummary()
+
         engine = embeddedServer(CIO, port = port, host = "0.0.0.0") {
             install(WebSockets) {
                 pingPeriod = Duration.ofSeconds(15)
@@ -106,32 +113,62 @@ class MediaWebSocketServer(
         call.respondBytes(bytes, contentType)
     }
 
+    @Synchronized
     fun stop() {
-        scope.cancel()
-        sessions.values.forEach { session ->
-            runBlocking { runCatching { session.socket.close(CloseReason(CloseReason.Codes.GOING_AWAY, "Server stopped")) } }
-        }
+        val toClose = sessions.values.toList()
         sessions.clear()
-        engine?.stop(500, 1500)
+        updateConnectedSummary()
+        runBlocking {
+            withTimeoutOrNull(800L) {
+                toClose.forEach { session ->
+                    runCatching {
+                        session.socket.close(CloseReason(CloseReason.Codes.GOING_AWAY, "Server stopped"))
+                    }
+                    runCatching { session.socket.cancel() }
+                }
+            }
+        }
+        scope.cancel()
+        runCatching { engine?.stop(300, 1000) }
         engine = null
     }
 
-    fun disconnectClient(clientId: String) {
+    fun disconnectClient(clientId: String, onComplete: (() -> Unit)? = null) {
         val targets = sessions.values.filter { it.clientId == clientId }
         targets.forEach { active ->
+            sessions.remove(active.connectionId)
             active.authenticated = false
             active.pendingServerNonce = null
             active.pendingSessionSalt = null
         }
         updateConnectedSummary()
-        targets.forEach { active ->
-            scope.launch {
-                runCatching {
-                    sendError(active, null, "DEVICE_REVOKED", "Pairing revoked on Android host", recoverable = false)
+
+        if (targets.isEmpty()) {
+            onComplete?.invoke()
+            return
+        }
+
+        scope.launch {
+            try {
+                targets.forEach { active ->
+                    withTimeoutOrNull(700L) {
+                        runCatching {
+                            sendError(
+                                active,
+                                null,
+                                "DEVICE_REVOKED",
+                                "Pairing revoked on Android host",
+                                recoverable = false
+                            )
+                        }
+                        runCatching {
+                            active.socket.close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Revoked"))
+                        }
+                    }
+                    runCatching { active.socket.cancel() }
                 }
-                runCatching {
-                    active.socket.close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Revoked"))
-                }
+            } finally {
+                onComplete?.invoke()
             }
         }
     }
@@ -409,5 +446,6 @@ class MediaWebSocketServer(
         _connectedClients.value = sessions.values
             .filter { it.authenticated }
             .mapNotNull { it.clientName ?: it.clientId }
+        _activeConnectionCount.value = sessions.size
     }
 }

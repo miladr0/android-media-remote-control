@@ -137,10 +137,21 @@
       padding: 0 8px;
     }
     .app-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
       font-size: 12px;
       font-weight: 600;
       color: var(--muted);
       letter-spacing: 0.02em;
+    }
+    .app-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      object-fit: cover;
+      flex-shrink: 0;
     }
     .track-title {
       font-size: 20px;
@@ -179,6 +190,16 @@
       flex-shrink: 0;
       min-height: 36px;
       touch-action: manipulation;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .session-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      object-fit: cover;
+      flex-shrink: 0;
     }
     .session-btn.active {
       background: var(--accent);
@@ -342,9 +363,12 @@
     </div>
 
     <section class="meta">
-      <div id="appMeta" class="app-meta">No Active Player</div>
+      <div class="app-meta">
+        <img id="appIcon" class="app-icon hidden" alt="" />
+        <span id="appMeta">No Active Player</span>
+      </div>
       <div id="trackTitle" class="track-title">Ready on Local Wi-Fi</div>
-      <div id="trackArtist" class="track-artist">Scan Android QR code to pair</div>
+      <div id="trackArtist" class="track-artist">Scan Android QR code or enter token to pair</div>
     </section>
 
     <section id="sessionsBar" class="sessions hidden"></section>
@@ -621,6 +645,7 @@
       var artworkImg = document.getElementById("artworkImg");
       var artworkFallback = document.getElementById("artworkFallback");
       var fallbackLabel = document.getElementById("fallbackLabel");
+      var appIcon = document.getElementById("appIcon");
       var appMeta = document.getElementById("appMeta");
       var trackTitle = document.getElementById("trackTitle");
       var trackArtist = document.getElementById("trackArtist");
@@ -692,7 +717,9 @@
       }
 
       function getClientName() {
-        return /iPhone|iPad/.test(navigator.userAgent) ? "iPhone Safari" : "Web Browser";
+        if (/iPhone|iPad/.test(navigator.userAgent)) return "iPhone Safari";
+        if (/Android/.test(navigator.userAgent)) return "Android Browser";
+        return "Web Browser";
       }
 
       function extractAndCleanPairToken() {
@@ -775,7 +802,7 @@
             setFeedback("err", UNPAIRED_MSG);
           } else {
             setStatus("", "Pairing required");
-            setFeedback("", "Scan QR code on Xiaomi to pair this browser");
+            setFeedback("", "Scan QR code on Android or enter pairing token");
           }
           pairingPanel.classList.remove("hidden");
           renderState(null);
@@ -956,9 +983,11 @@
       function renderState(state) {
         currentState = state;
         if (!state) {
+          appIcon.classList.add("hidden");
+          appIcon.removeAttribute("src");
           appMeta.textContent = "No Active Player";
           trackTitle.textContent = wasRevoked ? "Device Unpaired" : "Not Connected";
-          trackArtist.textContent = wasRevoked ? UNPAIRED_MSG : "Pair or wait for Xiaomi receiver";
+          trackArtist.textContent = wasRevoked ? UNPAIRED_MSG : "Pair or wait for Android receiver";
           artworkImg.classList.add("hidden");
           artworkFallback.classList.remove("hidden");
           fallbackLabel.textContent = "No Artwork";
@@ -971,7 +1000,17 @@
           return;
         }
 
-        appMeta.textContent = (state.appName || "No Active Player") + " · " + state.playbackState;
+        var playerLabel = state.appName || state.packageName || "No Active Player";
+        var stateLabel = state.isLastPlayed ? "Last played" : state.playbackState;
+        appMeta.textContent = playerLabel + " · " + stateLabel;
+        if (state.appIconB64) {
+          appIcon.src = "data:image/png;base64," + state.appIconB64;
+          appIcon.classList.remove("hidden");
+        } else {
+          appIcon.classList.add("hidden");
+          appIcon.removeAttribute("src");
+        }
+
         trackTitle.textContent = state.title || "No Track Title";
         trackArtist.textContent = state.artist || state.deviceName || "—";
 
@@ -982,7 +1021,7 @@
         } else {
           artworkImg.classList.add("hidden");
           artworkFallback.classList.remove("hidden");
-          fallbackLabel.textContent = state.appName || "No Artwork";
+          fallbackLabel.textContent = playerLabel || "No Artwork";
         }
 
         var supported = {};
@@ -994,7 +1033,7 @@
         btnPrev.disabled = !authenticated || !supported.previous;
         btnNext.disabled = !authenticated || !supported.next;
         btnStop.disabled = !authenticated || !supported.stop;
-        btnStop.title = supported.stop ? "Stop" : "Stop unsupported by " + (state.appName || "player");
+        btnStop.title = supported.stop ? "Stop" : "Stop unsupported by " + playerLabel;
         btnPlayPause.disabled = !authenticated || !(isPlaying ? supported.pause : supported.play);
 
         if (state.volume) {
@@ -1013,7 +1052,16 @@
             var b = document.createElement("button");
             b.type = "button";
             b.className = "session-btn" + (s.isSelected ? " active" : "");
-            b.textContent = s.appName;
+            if (s.appIconB64) {
+              var iconImg = document.createElement("img");
+              iconImg.className = "session-icon";
+              iconImg.alt = "";
+              iconImg.src = "data:image/png;base64," + s.appIconB64;
+              b.appendChild(iconImg);
+            }
+            var labelSpan = document.createElement("span");
+            labelSpan.textContent = s.appName || s.packageName;
+            b.appendChild(labelSpan);
             b.addEventListener("click", function () {
               dispatchCommand("select_session", { targetSessionId: s.sessionId });
             });

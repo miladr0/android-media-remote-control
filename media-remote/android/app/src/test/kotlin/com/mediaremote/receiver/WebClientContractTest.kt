@@ -140,6 +140,35 @@ class WebClientContractTest {
     }
 
     @Test
+    fun `state and state_last_played fixtures decode strictly with MediaStatePayload`() {
+        val stateEnv = parseValidEnvelope("state.json")
+        assertEquals("state", stateEnv.type)
+        val statePayload = ProtocolValidator.json.decodeFromString(
+            MediaStatePayload.serializer(),
+            stateEnv.data.toString()
+        )
+        assertFalse(statePayload.isLastPlayed)
+        assertEquals("Spotify", statePayload.appName)
+        assertNotNull(statePayload.appIconB64)
+        assertEquals(2, statePayload.sessions.size)
+        assertEquals("Spotify", statePayload.sessions[0].appName)
+        assertNull(statePayload.sessions[1].appName)
+
+        val lastPlayedEnv = parseValidEnvelope("state_last_played.json")
+        assertEquals("state", lastPlayedEnv.type)
+        val lastPlayedPayload = ProtocolValidator.json.decodeFromString(
+            MediaStatePayload.serializer(),
+            lastPlayedEnv.data.toString()
+        )
+        assertTrue(lastPlayedPayload.isLastPlayed)
+        assertNull(lastPlayedPayload.sessionId)
+        assertEquals("STOPPED", lastPlayedPayload.playbackState)
+        assertEquals(listOf("play"), lastPlayedPayload.supportedActions)
+        assertEquals("Spotify", lastPlayedPayload.appName)
+        assertNotNull(lastPlayedPayload.appIconB64)
+    }
+
+    @Test
     fun `unknown keys are strictly rejected by ProtocolValidator json`() {
         val badEnvelope = """
             {
@@ -171,5 +200,23 @@ class WebClientContractTest {
         val cmdRes = ProtocolValidator.parseCommand(badCommandEnv.value)
         assertTrue(cmdRes is ValidationResult.Invalid)
         assertEquals("INVALID_SCHEMA", (cmdRes as ValidationResult.Invalid).code)
+
+        val badStateJson = """
+            {
+              "deviceId": "and-pixel8",
+              "deviceName": "Pixel 8",
+              "packageName": "com.spotify.music",
+              "playbackState": "NONE",
+              "isLastPlayed": false,
+              "supportedActions": [],
+              "volume": { "current": 5, "max": 15, "percent": 33, "isFixed": false },
+              "sessions": [],
+              "unexpectedField": true
+            }
+        """.trimIndent()
+        val stateDecode = runCatching {
+            ProtocolValidator.json.decodeFromString(MediaStatePayload.serializer(), badStateJson)
+        }
+        assertTrue(stateDecode.isFailure)
     }
 }

@@ -92,17 +92,19 @@ test('Shared JSON schemas validate canonical envelope, hello_ack serverTime, str
   assert.equal(validateCommand({ action: 'set_volume', volume: 65 }), true);
 
   const statePayload = {
-    deviceId: 'and-xiaomi14',
-    deviceName: 'Xiaomi 14',
+    deviceId: 'and-pixel8',
+    deviceName: 'Pixel 8',
     sessionId: 'com.spotify.music:1',
     packageName: 'com.spotify.music',
     appName: 'Spotify',
+    appIconB64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
     title: 'Midnight Signal',
     artist: 'Kiasmos',
     album: 'Blurred',
     durationMs: 245000,
     positionMs: 12000,
     playbackState: 'PLAYING',
+    isLastPlayed: false,
     supportedActions: ['play', 'pause', 'next', 'previous'],
     artworkBase64: null,
     artworkHash: null,
@@ -112,6 +114,7 @@ test('Shared JSON schemas validate canonical envelope, hello_ack serverTime, str
         sessionId: 'com.spotify.music:1',
         packageName: 'com.spotify.music',
         appName: 'Spotify',
+        appIconB64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
         title: 'Midnight Signal',
         playbackState: 'PLAYING',
         isSelected: true,
@@ -123,8 +126,8 @@ test('Shared JSON schemas validate canonical envelope, hello_ack serverTime, str
   assert.equal(
     validatePairingQr({
       url: 'http://192.168.1.42:8765/?pair=tok_0123456789abcdef',
-      deviceId: 'and-xiaomi14',
-      deviceName: 'Xiaomi 14',
+      deviceId: 'and-pixel8',
+      deviceName: 'Pixel 8',
       ip: '192.168.1.42',
       port: 8765,
       pairingToken: 'tok_0123456789abcdef',
@@ -166,9 +169,9 @@ test('assets/web/index.html pure-JS HMAC-SHA256 matches fixed test vectors and N
   }
 });
 
-test('shared/fixtures/*.json match exact frames emitted by index.html JS core and pass strict schemas', () => {
+test('shared/fixtures/*.json match exact frames and pass strict schemas', () => {
   const core = loadIndexHtmlCore();
-  const { frames } = buildAllFixturesFromHtmlCore(core);
+  const { frames, stateFrames } = buildAllFixturesFromHtmlCore(core);
 
   const validatorsByType = {
     hello: validateHello,
@@ -177,9 +180,10 @@ test('shared/fixtures/*.json match exact frames emitted by index.html JS core an
     command: validateCommand,
     ping: validatePing,
     sync_request: validateSyncRequest,
+    state: validateState,
   };
 
-  for (const [name, generatedFrame] of Object.entries(frames)) {
+  for (const [name, generatedFrame] of Object.entries({ ...frames, ...stateFrames })) {
     const filePath = path.join(fixturesDir, `${name}.json`);
     assert.equal(fs.existsSync(filePath), true, `Missing fixture file ${name}.json`);
     const diskFrame = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -200,9 +204,13 @@ test('shared/fixtures/*.json match exact frames emitted by index.html JS core an
   }
 });
 
-test('assets/web/index.html avoids crypto.subtle, supports serverTime clock offset, and shows unpaired prompt on revocation', () => {
+test('assets/web/index.html avoids crypto.subtle, supports serverTime clock offset, app icons, Last played, and device-neutral copy', () => {
   const html = fs.readFileSync(webHtmlPath, 'utf8');
   assert.equal(html.includes('crypto.subtle'), false, 'index.html must not depend on crypto.subtle');
   assert.equal(html.includes('clockOffsetMs = env.data.serverTime - Date.now()'), true);
   assert.equal(html.includes('This device was unpaired - scan the QR again'), true);
+  assert.equal(html.includes('state.appIconB64'), true);
+  assert.equal(html.includes('state.isLastPlayed ? "Last played" : state.playbackState'), true);
+  assert.equal(html.includes('s.appName || s.packageName'), true);
+  assert.equal(html.includes('Scan QR code on Xiaomi'), false);
 });

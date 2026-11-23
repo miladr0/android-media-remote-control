@@ -11,7 +11,8 @@ export interface VolumeState {
 export interface SessionSummary {
   sessionId: string;
   packageName: string;
-  appName: string;
+  appName: string | null;
+  appIconB64: string | null;
   title: string | null;
   playbackState: PlaybackState;
   isSelected: boolean;
@@ -23,12 +24,14 @@ export interface MediaStatePayload {
   sessionId: string | null;
   packageName: string | null;
   appName: string | null;
+  appIconB64: string | null;
   title: string | null;
   artist: string | null;
   album: string | null;
   durationMs: number | null;
   positionMs: number | null;
   playbackState: PlaybackState;
+  isLastPlayed: boolean;
   supportedActions: TransportAction[];
   artworkBase64: string | null;
   artworkHash: string | null;

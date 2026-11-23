@@ -9,12 +9,14 @@ android {
     namespace = "com.mediaremote.receiver"
     compileSdk = 35
 
+    val ciVersionCode = providers.gradleProperty("versionCode").orNull?.toIntOrNull() ?: 1
+
     defaultConfig {
         applicationId = "com.mediaremote.receiver"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = ciVersionCode
+        versionName = "1.0.$ciVersionCode"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

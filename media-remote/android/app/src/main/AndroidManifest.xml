@@ -11,12 +11,23 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Foreground service permissions for reliable Xiaomi background availability -->
+    <!-- Foreground service permissions for reliable background availability -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Android 11+ package visibility for resolving media app names, icons, and MediaBrowserServices -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.media.browse.MediaBrowserService" />
+        </intent>
+    </queries>
 
     <application
         android:name=".MediaRemoteApp"
@@ -49,11 +60,20 @@
             </intent-filter>
         </service>
 
-        <!-- Keeps Ktor HTTP + WebSocket server & NSD registration alive on Xiaomi MIUI / HyperOS -->
+        <!-- Keeps Ktor HTTP + WebSocket server & NSD registration alive in the background -->
         <service
             android:name=".service.MediaRemoteForegroundService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice"
             tools:targetApi="34" />
+
+        <!-- Auto-starts receiver on boot unless the user explicitly clicked Exit in notification -->
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

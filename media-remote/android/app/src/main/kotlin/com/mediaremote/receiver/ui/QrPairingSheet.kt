@@ -33,7 +33,7 @@ fun QrPairingSheet(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Scan with iPhone Camera") },
+        title = { Text("Scan QR or Open in Any Browser") },
         text = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -45,7 +45,7 @@ fun QrPairingSheet(
                     modifier = Modifier.size(240.dp)
                 )
                 Text(
-                    "Opens the LocalCast web remote in Safari and swaps this one-time token (120s TTL) for a stored device secret.",
+                    "Open this address in any browser on the same Wi-Fi (phone, tablet, or computer). It swaps this one-time token (120s TTL) for a stored secret.",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(

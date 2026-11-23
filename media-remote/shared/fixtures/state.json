@@ -1,0 +1,57 @@
+{
+  "v": 1,
+  "type": "state",
+  "id": "evt-state001",
+  "seq": 1,
+  "ts": 1763712001200,
+  "nonce": "DQ4PEBESExQVFhcY",
+  "data": {
+    "deviceId": "and-pixel8",
+    "deviceName": "Pixel 8",
+    "sessionId": "com.spotify.music:1042",
+    "packageName": "com.spotify.music",
+    "appName": "Spotify",
+    "appIconB64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+    "title": "Midnight Signal",
+    "artist": "Kiasmos",
+    "album": "Blurred",
+    "durationMs": 245000,
+    "positionMs": 12000,
+    "playbackState": "PLAYING",
+    "isLastPlayed": false,
+    "supportedActions": [
+      "play",
+      "pause",
+      "next",
+      "previous"
+    ],
+    "artworkBase64": null,
+    "artworkHash": null,
+    "volume": {
+      "current": 9,
+      "max": 15,
+      "percent": 60,
+      "isFixed": false
+    },
+    "sessions": [
+      {
+        "sessionId": "com.spotify.music:1042",
+        "packageName": "com.spotify.music",
+        "appName": "Spotify",
+        "appIconB64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+        "title": "Midnight Signal",
+        "playbackState": "PLAYING",
+        "isSelected": true
+      },
+      {
+        "sessionId": "org.telegram.messenger:2099",
+        "packageName": "org.telegram.messenger",
+        "appName": null,
+        "appIconB64": null,
+        "title": "Voice Note",
+        "playbackState": "PAUSED",
+        "isSelected": false
+      }
+    ]
+  }
+}

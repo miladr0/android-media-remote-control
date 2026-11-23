@@ -1,27 +1,56 @@
 package com.mediaremote.receiver.media
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.media.AudioManager
 import android.media.MediaMetadata
+import android.media.browse.MediaBrowser
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Build
+import android.os.SystemClock
 import android.util.Base64
+import android.view.KeyEvent
 import com.mediaremote.receiver.protocol.MediaStatePayload
+import com.mediaremote.receiver.protocol.ProtocolValidator
 import com.mediaremote.receiver.protocol.SessionSummary
 import com.mediaremote.receiver.protocol.VolumeState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.resume
 
 sealed class CommandDispatchResult {
     data class Accepted(val action: String) : CommandDispatchResult()
     data class Rejected(val code: String, val message: String) : CommandDispatchResult()
 }
+
+@Serializable
+data class LastPlayedSessionRecord(
+    val packageName: String,
+    val appName: String? = null,
+    val title: String? = null,
+    val artist: String? = null,
+    val artworkThumbnailB64: String? = null,
+    val lastPlaybackState: String
+)
+
+private data class CachedOptionalText(val value: String?)
 
 class MediaSessionCoordinator(
     private val context: Context,
@@ -32,12 +61,19 @@ class MediaSessionCoordinator(
         context.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
     private val audioManager =
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val lastSessionPrefs =
+        context.getSharedPreferences("mediaremote_last_session", Context.MODE_PRIVATE)
+    private val json = ProtocolValidator.json
 
     private val registeredCallbacks = mutableMapOf<String, Pair<MediaController, MediaController.Callback>>()
     private var selectedSessionId: String? = null
     private var listening = false
 
-    private val _state = MutableStateFlow(buildEmptyState())
+    private val appLabelCache = ConcurrentHashMap<String, CachedOptionalText>()
+    private val appIconCache = ConcurrentHashMap<String, CachedOptionalText>()
+    private var lastPlayed: LastPlayedSessionRecord? = loadLastPlayed()
+
+    private val _state = MutableStateFlow(buildInitialState())
     val state: StateFlow<MediaStatePayload> = _state.asStateFlow()
 
     private val activeSessionsListener = MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
@@ -62,10 +98,12 @@ class MediaSessionCoordinator(
     fun stopMonitoring() {
         if (!listening) return
         runCatching { sessionManager.removeOnActiveSessionsChangedListener(activeSessionsListener) }
-        registeredCallbacks.values.forEach { (controller, callback) ->
-            runCatching { controller.unregisterCallback(callback) }
+        synchronized(this) {
+            registeredCallbacks.values.forEach { (controller, callback) ->
+                runCatching { controller.unregisterCallback(callback) }
+            }
+            registeredCallbacks.clear()
         }
-        registeredCallbacks.clear()
         listening = false
     }
 
@@ -73,7 +111,6 @@ class MediaSessionCoordinator(
     private fun syncControllers(controllers: List<MediaController>) {
         val incomingIds = controllers.map { controllerKey(it) }.toSet()
 
-        // Unregister removed sessions
         val toRemove = registeredCallbacks.keys.filter { it !in incomingIds }
         toRemove.forEach { key ->
             registeredCallbacks.remove(key)?.let { (ctrl, cb) ->
@@ -81,7 +118,6 @@ class MediaSessionCoordinator(
             }
         }
 
-        // Register new sessions
         controllers.forEach { controller ->
             val key = controllerKey(controller)
             if (!registeredCallbacks.containsKey(key)) {
@@ -90,7 +126,9 @@ class MediaSessionCoordinator(
                     override fun onMetadataChanged(metadata: MediaMetadata?) = refreshState()
                     override fun onAudioInfoChanged(info: MediaController.PlaybackInfo) = refreshState()
                     override fun onSessionDestroyed() {
-                        registeredCallbacks.remove(key)
+                        synchronized(this@MediaSessionCoordinator) {
+                            registeredCallbacks.remove(key)
+                        }
                         refreshState()
                     }
                 }
@@ -99,11 +137,18 @@ class MediaSessionCoordinator(
             }
         }
 
-        // Auto-select playing session if none selected or selected was destroyed
         if (selectedSessionId == null || selectedSessionId !in registeredCallbacks.keys) {
             selectedSessionId = pickPreferredSessionKey(registeredCallbacks.values.map { it.first })
         }
         refreshState()
+    }
+
+    private fun resyncActiveSessions() {
+        if (!MediaNotificationListenerService.isPermissionGranted(context)) return
+        val component = MediaNotificationListenerService.componentName(context)
+        runCatching {
+            syncControllers(sessionManager.getActiveSessions(component))
+        }
     }
 
     @Synchronized
@@ -116,8 +161,11 @@ class MediaSessionCoordinator(
         return CommandDispatchResult.Accepted("select_session")
     }
 
-    @Synchronized
-    fun executeCommand(action: String, volumePercent: Int? = null, targetSessionId: String? = null): CommandDispatchResult {
+    suspend fun executeCommand(
+        action: String,
+        volumePercent: Int? = null,
+        targetSessionId: String? = null
+    ): CommandDispatchResult {
         if (action == "select_session") {
             return selectSession(targetSessionId.orEmpty())
         }
@@ -134,21 +182,43 @@ class MediaSessionCoordinator(
         }
 
         if (!MediaNotificationListenerService.isPermissionGranted(context)) {
-            return CommandDispatchResult.Rejected("PERMISSION_MISSING", "Notification Listener permission not granted on Xiaomi device")
-        }
-
-        val controller = selectedSessionId?.let { registeredCallbacks[it]?.first }
-            ?: return CommandDispatchResult.Rejected("NO_ACTIVE_SESSION", "No active media session available")
-
-        val supported = extractSupportedActions(controller.playbackState)
-        if (action !in supported) {
             return CommandDispatchResult.Rejected(
-                "UNSUPPORTED_ACTION",
-                "${resolveAppName(controller.packageName)} does not support '$action' in its PlaybackState actions"
+                "PERMISSION_MISSING",
+                "Notification Listener permission not granted on Android device"
             )
         }
 
-        val controls = controller.transportControls
+        val activeController: MediaController?
+        val remembered: LastPlayedSessionRecord?
+        synchronized(this) {
+            activeController = selectedSessionId?.let { registeredCallbacks[it]?.first }
+            remembered = lastPlayed
+        }
+
+        if (activeController == null) {
+            if (remembered == null) {
+                return CommandDispatchResult.Rejected("NO_ACTIVE_SESSION", "No active media session available")
+            }
+            val appDisplay = resolveAppName(remembered.packageName) ?: remembered.appName ?: remembered.packageName
+            if (action != "play") {
+                return CommandDispatchResult.Rejected(
+                    "NO_ACTIVE_SESSION",
+                    "No active media session — press Play to resume $appDisplay"
+                )
+            }
+            return resumeLastPlayed(remembered, appDisplay)
+        }
+
+        val supported = extractSupportedActions(activeController.playbackState)
+        if (action !in supported) {
+            val appDisplay = resolveAppName(activeController.packageName) ?: activeController.packageName
+            return CommandDispatchResult.Rejected(
+                "UNSUPPORTED_ACTION",
+                "$appDisplay does not support '$action' in its PlaybackState actions"
+            )
+        }
+
+        val controls = activeController.transportControls
         when (action) {
             "play" -> controls.play()
             "pause" -> controls.pause()
@@ -160,27 +230,218 @@ class MediaSessionCoordinator(
         return CommandDispatchResult.Accepted(action)
     }
 
+    private suspend fun resumeLastPlayed(
+        last: LastPlayedSessionRecord,
+        appDisplay: String
+    ): CommandDispatchResult {
+        // 1. Try platform android.media.browse.MediaBrowser (no MediaBrowserCompat)
+        val browserResumed = tryResumeViaMediaBrowser(last.packageName)
+        if (browserResumed) {
+            resyncActiveSessions()
+            refreshState()
+            return CommandDispatchResult.Accepted("play")
+        }
+
+        // 2. Fallback: AudioManager.dispatchMediaKeyEvent with KEYCODE_MEDIA_PLAY (down + up)
+        val keyEventResumed = tryResumeViaMediaKey(last.packageName)
+        if (keyEventResumed) {
+            resyncActiveSessions()
+            refreshState()
+            return CommandDispatchResult.Accepted("play")
+        }
+
+        // 3. Could not resume cleanly
+        return CommandDispatchResult.Rejected(
+            "NO_ACTIVE_SESSION",
+            "Could not resume $appDisplay — open it once on the phone"
+        )
+    }
+
+    private suspend fun tryResumeViaMediaBrowser(packageName: String): Boolean {
+        val intent = Intent("android.media.browse.MediaBrowserService").setPackage(packageName)
+        val resolveInfos = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.queryIntentServices(intent, PackageManager.ResolveInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.queryIntentServices(intent, 0)
+            }
+        }.getOrDefault(emptyList())
+
+        val serviceInfo = resolveInfos.firstOrNull()?.serviceInfo ?: return false
+        val component = ComponentName(serviceInfo.packageName, serviceInfo.name)
+
+        return withContext(Dispatchers.Main) {
+            var browser: MediaBrowser? = null
+            try {
+                val controller = withTimeoutOrNull(3500L) {
+                    suspendCancellableCoroutine<MediaController?> { cont ->
+                        val cb = object : MediaBrowser.ConnectionCallback() {
+                            override fun onConnected() {
+                                val token = browser?.sessionToken
+                                val ctrl = if (token != null) MediaController(context, token) else null
+                                if (cont.isActive) cont.resume(ctrl)
+                            }
+
+                            override fun onConnectionSuspended() {
+                                if (cont.isActive) cont.resume(null)
+                            }
+
+                            override fun onConnectionFailed() {
+                                if (cont.isActive) cont.resume(null)
+                            }
+                        }
+                        browser = MediaBrowser(context, component, cb, null)
+                        browser?.connect()
+                    }
+                } ?: return@withContext false
+
+                val playDispatched = runCatching {
+                    controller.transportControls.play()
+                }.isSuccess
+                if (!playDispatched) return@withContext false
+
+                repeat(10) {
+                    val stateCode = controller.playbackState?.state
+                    if (stateCode == PlaybackState.STATE_PLAYING ||
+                        stateCode == PlaybackState.STATE_BUFFERING ||
+                        hasActivePlayingSession(packageName)
+                    ) {
+                        return@withContext true
+                    }
+                    delay(150L)
+                }
+                false
+            } catch (_: Throwable) {
+                false
+            } finally {
+                runCatching { browser?.disconnect() }
+            }
+        }
+    }
+
+    private suspend fun tryResumeViaMediaKey(targetPackage: String): Boolean {
+        val dispatched = runCatching {
+            val eventTime = SystemClock.uptimeMillis()
+            audioManager.dispatchMediaKeyEvent(
+                KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY, 0)
+            )
+            audioManager.dispatchMediaKeyEvent(
+                KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY, 0)
+            )
+        }.isSuccess
+        if (!dispatched) return false
+
+        repeat(10) {
+            resyncActiveSessions()
+            if (audioManager.isMusicActive || hasActivePlayingSession(targetPackage) || hasAnyPlayingSession()) {
+                return true
+            }
+            delay(150L)
+        }
+        return false
+    }
+
+    @Synchronized
+    private fun hasActivePlayingSession(packageName: String): Boolean =
+        registeredCallbacks.values.any { (ctrl, _) ->
+            ctrl.packageName == packageName &&
+                (ctrl.playbackState?.state == PlaybackState.STATE_PLAYING ||
+                    ctrl.playbackState?.state == PlaybackState.STATE_BUFFERING)
+        }
+
+    @Synchronized
+    private fun hasAnyPlayingSession(): Boolean =
+        registeredCallbacks.values.any { (ctrl, _) ->
+            ctrl.playbackState?.state == PlaybackState.STATE_PLAYING ||
+                ctrl.playbackState?.state == PlaybackState.STATE_BUFFERING
+        }
+
     @Synchronized
     fun refreshState() {
         val controllers = registeredCallbacks.values.map { it.first }
         val active = selectedSessionId?.let { registeredCallbacks[it]?.first }
-        val metadata = active?.metadata
-        val pbState = active?.playbackState
-        val artworkBitmap = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
-            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
-            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
-        val (artB64, artHash) = encodeArtwork(artworkBitmap)
 
         val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
         val volPct = ((currentVol.toFloat() / maxVol.toFloat()) * 100f).toInt().coerceIn(0, 100)
+        val volumeState = VolumeState(
+            current = currentVol,
+            max = maxVol,
+            percent = volPct,
+            isFixed = audioManager.isVolumeFixed
+        )
+
+        if (active == null) {
+            val remembered = lastPlayed
+            if (remembered != null) {
+                val appLabel = resolveAppName(remembered.packageName) ?: remembered.appName
+                val appIcon = resolveAppIconB64(remembered.packageName)
+                val thumb = remembered.artworkThumbnailB64
+                val thumbHash = thumb?.let { sha256Short(it.toByteArray()) }
+                _state.value = MediaStatePayload(
+                    deviceId = deviceId,
+                    deviceName = deviceName,
+                    sessionId = null,
+                    packageName = remembered.packageName,
+                    appName = appLabel,
+                    appIconB64 = appIcon,
+                    title = remembered.title,
+                    artist = remembered.artist,
+                    playbackState = "STOPPED",
+                    isLastPlayed = true,
+                    supportedActions = listOf("play"),
+                    artworkBase64 = thumb,
+                    artworkHash = thumbHash,
+                    volume = volumeState,
+                    sessions = emptyList()
+                )
+            } else {
+                _state.value = buildEmptyState(volumeState)
+            }
+            return
+        }
+
+        val metadata = active.metadata
+        val pbState = active.playbackState
+        val artworkBitmap = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
+            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+        val (artB64, artHash) = encodeArtwork(artworkBitmap, maxDim = 256f)
+
+        val activePkg = active.packageName
+        val activeAppLabel = resolveAppName(activePkg)
+        val activeAppIcon = resolveAppIconB64(activePkg)
+        val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
+        val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)
+            ?: metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
+        val mappedPlaybackState = mapPlaybackState(pbState?.state)
+
+        // Persist last session that was playing
+        if (pbState?.state == PlaybackState.STATE_PLAYING) {
+            val (smallThumbB64, _) = encodeArtwork(artworkBitmap, maxDim = 96f)
+            val record = LastPlayedSessionRecord(
+                packageName = activePkg,
+                appName = activeAppLabel,
+                title = title,
+                artist = artist,
+                artworkThumbnailB64 = smallThumbB64,
+                lastPlaybackState = mappedPlaybackState
+            )
+            if (record != lastPlayed) {
+                lastPlayed = record
+                saveLastPlayed(record)
+            }
+        }
 
         val summaries = controllers.map { ctrl ->
             val key = controllerKey(ctrl)
+            val pkg = ctrl.packageName
             SessionSummary(
                 sessionId = key,
-                packageName = ctrl.packageName,
-                appName = resolveAppName(ctrl.packageName),
+                packageName = pkg,
+                appName = resolveAppName(pkg),
+                appIconB64 = resolveAppIconB64(pkg),
                 title = ctrl.metadata?.getString(MediaMetadata.METADATA_KEY_TITLE),
                 playbackState = mapPlaybackState(ctrl.playbackState?.state),
                 isSelected = key == selectedSessionId
@@ -190,35 +451,68 @@ class MediaSessionCoordinator(
         _state.value = MediaStatePayload(
             deviceId = deviceId,
             deviceName = deviceName,
-            sessionId = active?.let { controllerKey(it) },
-            packageName = active?.packageName,
-            appName = active?.let { resolveAppName(it.packageName) },
-            title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE),
-            artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)
-                ?: metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST),
+            sessionId = controllerKey(active),
+            packageName = activePkg,
+            appName = activeAppLabel,
+            appIconB64 = activeAppIcon,
+            title = title,
+            artist = artist,
             album = metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM),
             durationMs = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION)?.takeIf { it > 0 },
             positionMs = pbState?.position?.takeIf { it >= 0 },
-            playbackState = mapPlaybackState(pbState?.state),
+            playbackState = mappedPlaybackState,
+            isLastPlayed = false,
             supportedActions = extractSupportedActions(pbState),
             artworkBase64 = artB64,
             artworkHash = artHash,
-            volume = VolumeState(
-                current = currentVol,
-                max = maxVol,
-                percent = volPct,
-                isFixed = audioManager.isVolumeFixed
-            ),
+            volume = volumeState,
             sessions = summaries
         )
     }
 
-    private fun buildEmptyState() = MediaStatePayload(
+    private fun buildInitialState(): MediaStatePayload {
+        val currentVol = runCatching { audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) }.getOrDefault(0)
+        val maxVol = runCatching { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }.getOrDefault(15).coerceAtLeast(1)
+        val volPct = ((currentVol.toFloat() / maxVol.toFloat()) * 100f).toInt().coerceIn(0, 100)
+        val volumeState = VolumeState(
+            current = currentVol,
+            max = maxVol,
+            percent = volPct,
+            isFixed = runCatching { audioManager.isVolumeFixed }.getOrDefault(false)
+        )
+        val remembered = lastPlayed
+        return if (remembered != null) {
+            val thumb = remembered.artworkThumbnailB64
+            MediaStatePayload(
+                deviceId = deviceId,
+                deviceName = deviceName,
+                packageName = remembered.packageName,
+                appName = resolveAppName(remembered.packageName) ?: remembered.appName,
+                appIconB64 = resolveAppIconB64(remembered.packageName),
+                title = remembered.title,
+                artist = remembered.artist,
+                playbackState = "STOPPED",
+                isLastPlayed = true,
+                supportedActions = listOf("play"),
+                artworkBase64 = thumb,
+                artworkHash = thumb?.let { sha256Short(it.toByteArray()) },
+                volume = volumeState,
+                sessions = emptyList()
+            )
+        } else {
+            buildEmptyState(volumeState)
+        }
+    }
+
+    private fun buildEmptyState(
+        volumeState: VolumeState = VolumeState(current = 0, max = 15, percent = 0, isFixed = false)
+    ) = MediaStatePayload(
         deviceId = deviceId,
         deviceName = deviceName,
         playbackState = "NONE",
+        isLastPlayed = false,
         supportedActions = emptyList(),
-        volume = VolumeState(current = 0, max = 15, percent = 0, isFixed = false),
+        volume = volumeState,
         sessions = emptyList()
     )
 
@@ -230,14 +524,49 @@ class MediaSessionCoordinator(
         return (playing ?: controllers.firstOrNull())?.let { controllerKey(it) }
     }
 
-    private fun resolveAppName(packageName: String): String = runCatching {
-        val appInfo = context.packageManager.getApplicationInfo(packageName, 0)
-        context.packageManager.getApplicationLabel(appInfo).toString()
-    }.getOrDefault(packageName)
+    private fun resolveAppName(packageName: String): String? {
+        appLabelCache[packageName]?.let { return it.value }
+        val resolved = runCatching {
+            val appInfo = context.packageManager.getApplicationInfo(packageName, 0)
+            context.packageManager.getApplicationLabel(appInfo).toString().takeIf { it.isNotBlank() }
+        }.getOrNull()
+        appLabelCache[packageName] = CachedOptionalText(resolved)
+        return resolved
+    }
 
-    private fun encodeArtwork(bitmap: Bitmap?): Pair<String?, String?> {
+    private fun resolveAppIconB64(packageName: String): String? {
+        appIconCache[packageName]?.let { return it.value }
+        val encoded = runCatching {
+            val drawable = context.packageManager.getApplicationIcon(packageName)
+            val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
+            try {
+                val canvas = Canvas(bitmap)
+                drawable.setBounds(0, 0, 96, 96)
+                drawable.draw(canvas)
+                val out = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+            } finally {
+                bitmap.recycle()
+            }
+        }.getOrNull()
+        appIconCache[packageName] = CachedOptionalText(encoded)
+        return encoded
+    }
+
+    private fun loadLastPlayed(): LastPlayedSessionRecord? {
+        val raw = lastSessionPrefs.getString(KEY_LAST_PLAYED, null) ?: return null
+        return runCatching { json.decodeFromString(LastPlayedSessionRecord.serializer(), raw) }.getOrNull()
+    }
+
+    private fun saveLastPlayed(record: LastPlayedSessionRecord) {
+        lastSessionPrefs.edit()
+            .putString(KEY_LAST_PLAYED, json.encodeToString(record))
+            .apply()
+    }
+
+    private fun encodeArtwork(bitmap: Bitmap?, maxDim: Float): Pair<String?, String?> {
         if (bitmap == null) return null to null
-        val maxDim = 256f
         val scale = minOf(maxDim / bitmap.width.coerceAtLeast(1), maxDim / bitmap.height.coerceAtLeast(1), 1f)
         val targetW = (bitmap.width * scale).toInt().coerceAtLeast(1)
         val targetH = (bitmap.height * scale).toInt().coerceAtLeast(1)
@@ -245,12 +574,16 @@ class MediaSessionCoordinator(
         val out = ByteArrayOutputStream()
         scaled.compress(Bitmap.CompressFormat.JPEG, 76, out)
         val bytes = out.toByteArray()
-        val hash = MessageDigest.getInstance("SHA-256").digest(bytes)
-            .take(8).joinToString("") { "%02x".format(it) }
-        return Base64.encodeToString(bytes, Base64.NO_WRAP) to hash
+        return Base64.encodeToString(bytes, Base64.NO_WRAP) to sha256Short(bytes)
     }
 
+    private fun sha256Short(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes)
+            .take(8).joinToString("") { "%02x".format(it) }
+
     companion object {
+        private const val KEY_LAST_PLAYED = "last_played_v1"
+
         fun extractSupportedActions(state: PlaybackState?): List<String> =
             extractSupportedActionsFromMask(state?.actions ?: 0L)
 

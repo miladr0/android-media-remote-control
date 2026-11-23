@@ -21,8 +21,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+      - name: Cache Android debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
       - name: Build debug APK
-        run: gradle --no-daemon --stacktrace assembleDebug
+        run: gradle --no-daemon --stacktrace -PversionCode=${{ github.run_number }} assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: localcast-receiver-debug-apk
@@ -35,7 +40,7 @@ jobs:
           prerelease: true
           files: media-remote/android/app/build/outputs/apk/debug/app-debug.apk
       - name: Unit tests
-        run: gradle --no-daemon testDebugUnitTest
+        run: gradle --no-daemon -PversionCode=${{ github.run_number }} testDebugUnitTest
       - uses: actions/upload-artifact@v4
         if: always()
         with:

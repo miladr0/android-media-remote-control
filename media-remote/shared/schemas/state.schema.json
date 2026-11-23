@@ -20,6 +20,7 @@
     "sessionId": { "type": ["string", "null"] },
     "packageName": { "type": ["string", "null"] },
     "appName": { "type": ["string", "null"] },
+    "appIconB64": { "type": ["string", "null"] },
     "title": { "type": ["string", "null"] },
     "artist": { "type": ["string", "null"] },
     "album": { "type": ["string", "null"] },
@@ -29,6 +30,7 @@
       "type": "string",
       "enum": ["NONE", "STOPPED", "PAUSED", "PLAYING", "BUFFERING", "ERROR"]
     },
+    "isLastPlayed": { "type": "boolean" },
     "supportedActions": {
       "type": "array",
       "items": {
@@ -59,7 +61,8 @@
         "properties": {
           "sessionId": { "type": "string", "minLength": 1 },
           "packageName": { "type": "string", "minLength": 1 },
-          "appName": { "type": "string", "minLength": 1 },
+          "appName": { "type": ["string", "null"] },
+          "appIconB64": { "type": ["string", "null"] },
           "title": { "type": ["string", "null"] },
           "playbackState": {
             "type": "string",

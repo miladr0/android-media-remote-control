@@ -184,18 +184,100 @@ export function buildAllFixturesFromHtmlCore(core = loadIndexHtmlCore()) {
     };
   });
 
-  return { frames, hmac_vectors };
+  // 1x1 transparent PNG base64 for compact deterministic fixture appIconB64
+  const sampleAppIconB64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+  const stateFrames = {
+    state: core.buildEnvelope(
+      'state',
+      {
+        deviceId: 'and-pixel8',
+        deviceName: 'Pixel 8',
+        sessionId: 'com.spotify.music:1042',
+        packageName: 'com.spotify.music',
+        appName: 'Spotify',
+        appIconB64: sampleAppIconB64,
+        title: 'Midnight Signal',
+        artist: 'Kiasmos',
+        album: 'Blurred',
+        durationMs: 245000,
+        positionMs: 12000,
+        playbackState: 'PLAYING',
+        isLastPlayed: false,
+        supportedActions: ['play', 'pause', 'next', 'previous'],
+        artworkBase64: null,
+        artworkHash: null,
+        volume: { current: 9, max: 15, percent: 60, isFixed: false },
+        sessions: [
+          {
+            sessionId: 'com.spotify.music:1042',
+            packageName: 'com.spotify.music',
+            appName: 'Spotify',
+            appIconB64: sampleAppIconB64,
+            title: 'Midnight Signal',
+            playbackState: 'PLAYING',
+            isSelected: true,
+          },
+          {
+            sessionId: 'org.telegram.messenger:2099',
+            packageName: 'org.telegram.messenger',
+            appName: null,
+            appIconB64: null,
+            title: 'Voice Note',
+            playbackState: 'PAUSED',
+            isSelected: false,
+          },
+        ],
+      },
+      1,
+      fixedTs + 1200,
+      'evt-state001',
+      'DQ4PEBESExQVFhcY'
+    ),
+    state_last_played: core.buildEnvelope(
+      'state',
+      {
+        deviceId: 'and-pixel8',
+        deviceName: 'Pixel 8',
+        sessionId: null,
+        packageName: 'com.spotify.music',
+        appName: 'Spotify',
+        appIconB64: sampleAppIconB64,
+        title: 'Midnight Signal',
+        artist: 'Kiasmos',
+        album: null,
+        durationMs: null,
+        positionMs: null,
+        playbackState: 'STOPPED',
+        isLastPlayed: true,
+        supportedActions: ['play'],
+        artworkBase64: null,
+        artworkHash: null,
+        volume: { current: 9, max: 15, percent: 60, isFixed: false },
+        sessions: [],
+      },
+      2,
+      fixedTs + 1300,
+      'evt-state002',
+      'Dg8QERITFBUWFxgZ'
+    ),
+  };
+
+  return { frames, stateFrames, hmac_vectors };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   fs.mkdirSync(fixturesDir, { recursive: true });
-  const { frames, hmac_vectors } = buildAllFixturesFromHtmlCore();
-  for (const [name, payload] of Object.entries(frames)) {
+  const { frames, stateFrames, hmac_vectors } = buildAllFixturesFromHtmlCore();
+  for (const [name, payload] of Object.entries({ ...frames, ...stateFrames })) {
     fs.writeFileSync(path.join(fixturesDir, `${name}.json`), JSON.stringify(payload, null, 2) + '\n');
   }
   fs.writeFileSync(
     path.join(fixturesDir, 'hmac_vectors.json'),
     JSON.stringify({ vectors: hmac_vectors }, null, 2) + '\n'
   );
-  console.log(`Generated ${Object.keys(frames).length} frame fixtures + ${hmac_vectors.length} HMAC vectors in ${fixturesDir}`);
+  console.log(
+    `Generated ${Object.keys(frames).length} client frame fixtures, ${Object.keys(stateFrames).length} state fixtures, and ${hmac_vectors.length} HMAC vectors in ${fixturesDir}`
+  );
 }

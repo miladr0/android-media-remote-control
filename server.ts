@@ -3,6 +3,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import zlib from 'zlib';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createRequire } from 'module';
 import QRCode from 'qrcode';
@@ -58,15 +59,71 @@ interface MediaSessionSim {
   trackIndex: number;
 }
 
-const DEVICE_ID = 'and-xiaomi14pro';
-const DEVICE_NAME = 'Xiaomi 14 Pro (HyperOS)';
+const DEVICE_ID = 'and-localcast01';
+const DEVICE_NAME = 'Android Phone (Simulated)';
 
-// Generate real ECDH P-256 identity keypair for the simulated Xiaomi host
+// Generate real ECDH P-256 identity keypair for the simulated Android host
 const hostKeyPair = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
 const hostPubSpkiB64 = hostKeyPair.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
 
 let activePairingToken: { token: string; expiresAt: number; consumed: boolean } | null = null;
 const pairedClients = new Map<string, { clientId: string; clientName: string; sharedSecret: Buffer; fingerprint: string; pairedAt: number }>();
+
+const appIconCache = new Map<string, string>();
+function makeSolidPngB64(packageName: string, r: number, g: number, b: number): string {
+  const cached = appIconCache.get(packageName);
+  if (cached) return cached;
+  const size = 24;
+  const raw = Buffer.alloc(size * (1 + size * 4));
+  for (let y = 0; y < size; y++) {
+    const rowOff = y * (1 + size * 4);
+    raw[rowOff] = 0;
+    for (let x = 0; x < size; x++) {
+      const px = rowOff + 1 + x * 4;
+      raw[px] = r;
+      raw[px + 1] = g;
+      raw[px + 2] = b;
+      raw[px + 3] = 255;
+    }
+  }
+  const crc32 = (buf: Buffer) => {
+    let c = 0xffffffff;
+    for (let i = 0; i < buf.length; i++) {
+      c ^= buf[i];
+      for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (c & 1 ? 0xedb88320 : 0);
+    }
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type: string, data: Buffer) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length, 0);
+    const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body), 0);
+    return Buffer.concat([len, body, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 6; // RGBA
+  const png = Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', zlib.deflateSync(raw)),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+  const b64 = png.toString('base64');
+  appIconCache.set(packageName, b64);
+  return b64;
+}
+
+const APP_ICONS: Record<string, string> = {
+  'com.spotify.music': makeSolidPngB64('com.spotify.music', 29, 185, 84),
+  'com.google.android.youtube': makeSolidPngB64('com.google.android.youtube', 220, 38, 38),
+  'org.videolan.vlc': makeSolidPngB64('org.videolan.vlc', 234, 88, 12),
+  'com.android.music': makeSolidPngB64('com.android.music', 37, 99, 235),
+};
 
 const mediaSessions: MediaSessionSim[] = [
   {
@@ -163,12 +220,12 @@ const mediaSessions: MediaSessionSim[] = [
     ],
   },
   {
-    sessionId: 'com.miui.player:4005',
-    packageName: 'com.miui.player',
-    appName: 'MIUI Music',
+    sessionId: 'com.android.music:4005',
+    packageName: 'com.android.music',
+    appName: 'Local Music',
     title: 'Linen Shadows (24-bit FLAC)',
     artist: 'Guild Acoustic',
-    album: 'Xiaomi Local Library',
+    album: 'Local Library',
     durationMs: 212000,
     positionMs: 28000,
     playbackState: 'PAUSED',
@@ -179,7 +236,7 @@ const mediaSessions: MediaSessionSim[] = [
       {
         title: 'Linen Shadows (24-bit FLAC)',
         artist: 'Guild Acoustic',
-        album: 'Xiaomi Local Library',
+        album: 'Local Library',
         durationMs: 212000,
         artworkUrl: '/src/assets/images/album_art_acoustic_1795257544586.jpg',
       },
@@ -211,12 +268,14 @@ function buildStatePayload() {
     sessionId: active.sessionId,
     packageName: active.packageName,
     appName: active.appName,
+    appIconB64: APP_ICONS[active.packageName] ?? null,
     title: active.title,
     artist: active.artist,
     album: active.album,
     durationMs: active.durationMs,
     positionMs: active.positionMs,
     playbackState: active.playbackState,
+    isLastPlayed: false,
     supportedActions: active.supportedActions,
     artworkBase64,
     artworkHash,
@@ -230,6 +289,7 @@ function buildStatePayload() {
       sessionId: s.sessionId,
       packageName: s.packageName,
       appName: s.appName,
+      appIconB64: APP_ICONS[s.packageName] ?? null,
       title: s.title,
       playbackState: s.playbackState,
       isSelected: s.sessionId === active.sessionId,
@@ -893,7 +953,7 @@ async function startServer() {
         sendEnvelope(conn, 'error', {
           requestId: null,
           code: 'DEVICE_REVOKED',
-          message: 'Device pairing revoked by Xiaomi receiver host',
+          message: 'Device pairing revoked by Android receiver host',
           recoverable: false,
         });
         conn.ws.close(1008, 'Revoked');
